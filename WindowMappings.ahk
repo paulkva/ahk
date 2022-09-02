@@ -170,36 +170,24 @@ Loop, %RowQty%
 #!NumPad9::SnapWin(Mon,33,0,67,67)
 #^!NumPad9::SnapWin(Mon,20,0,80,80)
 
+; Win Ctrl Shift Right :: 100% plus extend right 150%
+#^+Right::SnapWin(Mon,0,0,150,100)
+
 SnapWin(Mon, LftPct = 0, TopPct = 0, WdtPct = 100, HgtPct = 100)
 {
-	; If Focus is on an Ignored Program (I.e.Desktop), Ignore this HotKey
 	If (IgnorePrgrm())
 	{
 		Return
 	}
+	Win := PrepWin(Mon)
 
-	; Retrieve Coordinates, Dimensions, Min/Max State, Process Name and Title of Active Window
-	WinGetPos, WinLft, WinTop, WinWdt, WinHgt, A
-	WinGet, WinMMax, MinMax, A
+	MonWdt := Mon.Rgt[Win.M] - Mon.Lft[Win.M]
+	MonHgt := Mon.Btm[Win.M] - Mon.Top[Win.M]
 
-	; Add Correction Factor per Program + Find in which Monitor Active Window is located
-	CF := CrctnFctr()
-	; Retrieves on which Monitor Number the Active Window is on
-	M := WinCurntMon(Mon)
-
-	; If Window is Maximized, "UnMaximize" it
-	If (WinMMax == 1)
-	{
-		WinRestore, A
-	}
-
-	MonWdt := Mon.Rgt[M] - Mon.Lft[M]
-	MonHgt := Mon.Btm[M] - Mon.Top[M]
-
-	TgtLft := Mon.Lft[M] + Floor(MonWdt * LftPct / 100) + CF.Hrz
-	TgtTop := Mon.Top[M] + Floor(MonHgt * TopPct / 100)
-	TgtWdt := Floor(MonWdt * WdtPct / 100) + CF.Wdt
-	TgtHgt := Floor(MonHgt * HgtPct / 100) + CF.Hgt
+	TgtLft := Mon.Lft[Win.M] + Floor(MonWdt * LftPct / 100) + Win.CF.Hrz
+	TgtTop := Mon.Top[Win.M] + Floor(MonHgt * TopPct / 100)
+	TgtWdt := Floor(MonWdt * WdtPct / 100) + Win.CF.Wdt
+	TgtHgt := Floor(MonHgt * HgtPct / 100) + Win.CF.Hgt
 
 	WinMove, A, , TgtLft, TgtTop, TgtWdt, TgtHgt
 	Return
@@ -208,123 +196,89 @@ SnapWin(Mon, LftPct = 0, TopPct = 0, WdtPct = 100, HgtPct = 100)
 #^Up::
 ExtendTopEdge:
 {
-	; If Focus is on an Ignored Program (I.e.Desktop), Ignore this HotKey
 	If (IgnorePrgrm())
 	{
 		Return
 	}
+	Win := PrepWin(Mon)
 
-	; Retrieve Coordinates, Dimensions, Min/Max State, Process Name and Title of Active Window
-	WinGetPos, WinLft, WinTop, WinWdt, WinHgt, A
-	WinGet, WinMMax, MinMax, A
-
-	; Add Correction Factor per Program + Find in which Monitor Active Window is located
-	CF := CrctnFctr()
-	; Retrieves on which Monitor Number the Active Window is on
-	M := WinCurntMon(Mon)
-
-	; If Window is Maximized, "UnMaximize" it
-	If (WinMMax == 1)
-	{
-		WinRestore, A
-	}
-
-	TgtTop := Mon.Top[M]
-	TgtHgt := WinHgt + (WinTop - Mon.Top[M])
-	WinMove, A, , WinLft, TgtTop, WinWdt, TgtHgt
+	TgtTop := Mon.Top[Win.M]
+	TgtHgt := Win.Hgt + (Win.Top - Mon.Top[Win.M])
+	WinMove, A, , Win.Lft, TgtTop, Win.Wdt, TgtHgt
 	Return
 }
 
 #^Down::
 ExtendBtmEdge:
 {
-	; If Focus is on an Ignored Program (I.e.Desktop), Ignore this HotKey
 	If (IgnorePrgrm())
 	{
 		Return
 	}
+	Win := PrepWin(Mon)
 
-	; Retrieve Coordinates, Dimensions, Min/Max State, Process Name and Title of Active Window
-	WinGetPos, WinLft, WinTop, WinWdt, WinHgt, A
-	WinGet, WinMMax, MinMax, A
-
-	; Add Correction Factor per Program + Find in which Monitor Active Window is located
-	CF := CrctnFctr()
-	; Retrieves on which Monitor Number the Active Window is on
-	M := WinCurntMon(Mon)
-
-	; If Window is Maximized, "UnMaximize" it
-	If (WinMMax == 1)
-	{
-		WinRestore, A
-	}
-
-	TgtHgt := Mon.Btm[M] - WinTop
-	WinMove, A, , WinLft, WinTop, WinWdt, TgtHgt
+	TgtHgt := Mon.Btm[Win.M] - Win.Top
+	WinMove, A, , Win.Lft, Win.Top, Win.Wdt, TgtHgt
 	Return
 }
 
 #^Left::
 ExtendLftEdge:
 {
-	; If Focus is on an Ignored Program (I.e.Desktop), Ignore this HotKey
 	If (IgnorePrgrm())
 	{
 		Return
 	}
+	Win := PrepWin(Mon)
 
-	; Retrieve Coordinates, Dimensions, Min/Max State, Process Name and Title of Active Window
-	WinGetPos, WinLft, WinTop, WinWdt, WinHgt, A
-	WinGet, WinMMax, MinMax, A
-
-	; Add Correction Factor per Program + Find in which Monitor Active Window is located
-	CF := CrctnFctr()
-	; Retrieves on which Monitor Number the Active Window is on
-	M := WinCurntMon(Mon)
-
-	; If Window is Maximized, "UnMaximize" it
-	If (WinMMax == 1)
-	{
-		WinRestore, A
-	}
-
-	TgtLft := Mon.Lft[M] + CF.Hrz
-	TgtWdt := WinWdt + WinLft - TgtLft
-	WinMove, A, , TgtLft, WinTop, TgtWdt, WinHgt
+	TgtLft := Mon.Lft[Win.M] + Win.CF.Hrz
+	TgtWdt := Win.Wdt + Win.Lft - TgtLft
+	WinMove, A, , TgtLft, Win.Top, TgtWdt, Win.Hgt
 	Return
 }
 
 #^Right::
 ExtendRgtEdge:
 {
-	; If Focus is on an Ignored Program (I.e.Desktop), Ignore this HotKey
 	If (IgnorePrgrm())
 	{
 		Return
 	}
+	Win := PrepWin(Mon)
 
+	TgtWdt := Mon.Rgt[Win.M] - Win.Lft
+	WinMove, A, , Win.Lft, Win.Top, TgtWdt, Win.Hgt
+	Return
+}
+
+PrepWin(Mon)
+{
 	; Retrieve Coordinates, Dimensions, Min/Max State, Process Name and Title of Active Window
 	WinGetPos, WinLft, WinTop, WinWdt, WinHgt, A
 	WinGet, WinMMax, MinMax, A
 
+	Win := {}
+	Win.Lft := WinLft
+	Win.Top := WinTop
+	Win.Wdt := WinWdt
+	Win.Hgt := WinHgt
+
 	; Add Correction Factor per Program + Find in which Monitor Active Window is located
-	CF := CrctnFctr()
+	Win.CF := CrctnFctr()
 	; Retrieves on which Monitor Number the Active Window is on
-	M := WinCurntMon(Mon)
+	Win.M := WinCurntMon(Mon)
 
 	; If Window is Maximized, "UnMaximize" it
 	If (WinMMax == 1)
 	{
 		WinRestore, A
 	}
-
-	TgtWdt := Mon.Rgt[M] - WinLft + CF.Wdt
-	WinMove, A, , WinLft, WinTop, TgtWdt, WinHgt
-	Return
+	Return Win
 }
+
+
 ;     User Defined Values and Programs
 ; ****************************************
-; ***** Gosub Label *****
 ; Correction Factor to implement for specific Programs
 CrctnFctr()
 {
@@ -342,7 +296,6 @@ CrctnFctr()
 
 ;     User Defined Values and Programs
 ; ****************************************
-; ***** Gosub Label *****
 ; Exluded Programs, where the HotKeys will NOT WORK
 IgnorePrgrm()
 {
@@ -363,7 +316,6 @@ IgnorePrgrm()
 	Return False
 }
 
-; ***** Gosub Label *****
 ; Retrieves on which Monitor Number the Active Window is on
 ; Used to Move Window from Right to Left Monitors
 WinCurntMon(Mon)
