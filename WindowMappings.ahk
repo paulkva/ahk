@@ -129,52 +129,93 @@ Loop, %RowQty%
 #^NumPad1::SnapWin(Mon,0,50,50,50)
 #!NumPad1::SnapWin(Mon,0,33,67,67)
 #^!NumPad1::SnapWin(Mon,0,20,80,80)
+NumPadEnter & Numpad1::SnapWinPad(Mon, [0,0,0], [50,33,20], [50,67,80], [50,67,80])
 
 ; NumPad2 :: Bottom 50% / 67% / 80%
 #^NumPad2::SnapWin(Mon,0,50,100,50)
 #!NumPad2::SnapWin(Mon,0,33,100,67)
 #^!NumPad2::SnapWin(Mon,0,20,100,80)
+NumPadEnter & Numpad2::SnapWinPad(Mon, [0,0,0], [50,33,20], [100,100,100], [50,67,80])
 
 ; NumPad3 :: Bottom Right 50% / 67% / 80%
 #^NumPad3::SnapWin(Mon,50,50,50,50)
 #!NumPad3::SnapWin(Mon,33,33,67,67)
 #^!NumPad3::SnapWin(Mon,20,20,80,80)
+NumPadEnter & Numpad3::SnapWinPad(Mon, [50,33,20], [50,33,20], [50,67,80], [50,67,80])
 
 ; NumPad4 :: Left 50% / 67% / 80%
 #^NumPad4::SnapWin(Mon,0,0,50,100)
 #!NumPad4::SnapWin(Mon,0,0,67,100)
 #^!NumPad4::SnapWin(Mon,0,0,80,100)
+NumPadEnter & Numpad4::SnapWinPad(Mon, [0,0,0], [0,0,0], [50,67,80], [100,100,100])
 
 ; NumPad5 :: Middle 50% / 80% / 100% (but not maximized)
 #^NumPad5::SnapWin(Mon,25,25,50,50)
 #!NumPad5::SnapWin(Mon,10,10,80,80)
 #^!NumPad5::SnapWin(Mon,0,0,100,100)
+NumPadEnter & Numpad5::SnapWinPad(Mon, [25,10,0], [25,10,0], [50,80,100], [50,80,100])
 
 ; NumPad6 :: Right 50% / 67% / 80%
 #^NumPad6::SnapWin(Mon,50,0,50,100)
 #!NumPad6::SnapWin(Mon,33,0,67,100)
 #^!NumPad6::SnapWin(Mon,20,0,80,100)
+NumPadEnter & Numpad6::SnapWinPad(Mon, [50,33,20], [0,0,0], [50,67,80], [100,100,100])
 
 ; NumPad7 :: Top Left 50% / 67% / 80%
 #^NumPad7::SnapWin(Mon,0,0,50,50)
 #!NumPad7::SnapWin(Mon,0,0,67,67)
 #^!NumPad7::SnapWin(Mon,0,0,80,80)
+NumPadEnter & Numpad7::SnapWinPad(Mon, [0,0,0], [0,0,0], [50,67,80], [50,67,80])
 
 ; NumPad8 :: Top 50% / 67% / 80%
 #^NumPad8::SnapWin(Mon,0,0,100,50)
 #!NumPad8::SnapWin(Mon,0,0,100,67)
 #^!NumPad8::SnapWin(Mon,0,0,100,80)
+NumPadEnter & Numpad8::SnapWinPad(Mon, [0,0,0], [0,0,0], [100,100,100], [50,67,80])
 
 ; NumPad9 :: Top Right 50% / 67% / 80%
 #^NumPad9::SnapWin(Mon,50,0,50,50)
 #!NumPad9::SnapWin(Mon,33,0,67,67)
 #^!NumPad9::SnapWin(Mon,20,0,80,80)
+NumPadEnter & Numpad9::SnapWinPad(Mon, [50,33,20], [0,0,0], [50,67,80], [50,67,80])
 
-; Win Ctrl Shift Right :: 100% plus extend right 150%
-#^+Right::SnapWin(Mon,0,0,150,100)
+; Right :: 100% on current monitor plus extend right 125% / 150% / 175%
+#^Right::SnapWin(Mon,0,0,125,100)
+#!Right::SnapWin(Mon,0,0,150,100)
+#^!Right::SnapWin(Mon,0,0,175,100)
+NumPadEnter & Right::SnapWinPad(Mon, [0,0,0], [0,0,0], [125,150,175], [100,100,100])
 
-SnapWin(Mon, LftPct = 0, TopPct = 0, WdtPct = 100, HgtPct = 100)
+; Let NumPad0 by itself still work
+NumPadEnter::Send {NumPadEnter}
+
+SnapWinPad(Mon, LeftPct, TopPct, WdtPct, HgtPct)
 {
+	If (GetKeyState("Control") AND GetKeyState("Alt"))
+	{
+		Return SnapWin(Mon, LeftPct[3], TopPct[3], WdtPct[3], HgtPct[3])
+	}
+	If (GetKeyState("Alt"))
+	{
+		Return SnapWin(Mon, LeftPct[2], TopPct[2], WdtPct[2], HgtPct[2])
+	}
+	If (GetKeyState("Control"))
+	{
+		Return SnapWin(Mon, LeftPct[1], TopPct[1], WdtPct[1], HgtPct[1])
+	}
+}
+
+SnapWin(Mon, LftPct = 0, TopPct = 0, WdtPct = 100, HgtPct = 100, ExtraKeys = 0)
+{
+	If (IsObject(ExtraKeys))
+	{
+		Loop % ExtraKeys.Length()
+		{
+			If (!GetKeyState(ExtraKeys[A_Index]))
+			{
+				Return
+			}
+		}
+	}
 	If (IgnorePrgrm())
 	{
 		Return
@@ -193,7 +234,7 @@ SnapWin(Mon, LftPct = 0, TopPct = 0, WdtPct = 100, HgtPct = 100)
 	Return
 }
 
-#^Up::
+#^+Up::
 ExtendTopEdge:
 {
 	If (IgnorePrgrm())
@@ -208,7 +249,7 @@ ExtendTopEdge:
 	Return
 }
 
-#^Down::
+#^+Down::
 ExtendBtmEdge:
 {
 	If (IgnorePrgrm())
@@ -222,7 +263,7 @@ ExtendBtmEdge:
 	Return
 }
 
-#^Left::
+#^+Left::
 ExtendLftEdge:
 {
 	If (IgnorePrgrm())
@@ -237,7 +278,7 @@ ExtendLftEdge:
 	Return
 }
 
-#^Right::
+#^+Right::
 ExtendRgtEdge:
 {
 	If (IgnorePrgrm())
