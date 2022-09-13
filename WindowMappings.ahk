@@ -185,7 +185,7 @@ NumPadEnter & Numpad9::SnapWinPad(Mon, [50,33,20], [0,0,0], [50,67,80], [50,67,8
 #^!Right::SnapWin(Mon,0,0,175,100)
 NumPadEnter & Right::SnapWinPad(Mon, [0,0,0], [0,0,0], [125,150,175], [100,100,100])
 
-; Let NumPad0 by itself still work
+; Let NumPadEnter by itself still work
 NumPadEnter::Send {NumPadEnter}
 
 SnapWinPad(Mon, LeftPct, TopPct, WdtPct, HgtPct)
@@ -324,7 +324,7 @@ PrepWin(Mon)
 CrctnFctr()
 {
 	WinGet, PNameWin, ProcessName, A
-	If (PNameWin == "Code.exe" OR PNameWin == "Spotify.exe" OR PNameWin == "OUTLOOK.EXE" OR PNameWin == "lync.exe" OR PNameWin == "slack.exe" OR PNameWin == "WINWORD.EXE" OR PNameWin == "EXCEL.EXE" OR PNameWin == "Revu.exe")
+	If (PNameWin in "code.exe,spotify.exe,outlook.exe,lync.exe,winword.exe,excel.exe,revu.exe,teams.exe")
 	{
 		Return { Hrz: 0, Hgt: 0, Wdt: 0 }
 	}
@@ -340,16 +340,16 @@ CrctnFctr()
 ; Exluded Programs, where the HotKeys will NOT WORK
 IgnorePrgrm()
 {
-	WinGetClass, CNameHlfLft, A
+	WinGetClass, CNameWin, A
 	; WorkerW ➔ Desktop
-	If (CNameHlfLft == "WorkerW")
+	If (CNameWin == "WorkerW")
 	{
 		Return True
 	}
 
-	WinGet, PNameHlfLft, ProcessName, A
-	WinGetTitle, TNameHlfLft, A
-	If (PNameHlfLft == "lync.exe" OR (PNameHlfLft == "vlc.exe" AND TNameHlfLft ~= "Playlist") OR PNameHlfLft == "slack.exe" OR (PNameHlfLft == "ApplicationFrameHost.exe" AND TNameHlfLft ~= "Calculator"))
+	WinGet, PNameWin, ProcessName, A
+	WinGetTitle, TNameWin, A
+	If (PNameWin == "lync.exe" OR (PNameWin == "vlc.exe" AND TNameWin ~= "Playlist") OR (PNameWin == "ApplicationFrameHost.exe" AND TNameWin ~= "Calculator"))
 	{
 		Return True
 	}
