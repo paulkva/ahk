@@ -125,6 +125,8 @@ Loop, %RowQty%
 	}
 }
 
+;MsgBox, Ready!
+
 ; NumPad1 :: Bottom Left 50% / 67% / 80%
 #^NumPad1::SnapWin(Mon,0,50,50,50)
 #!NumPad1::SnapWin(Mon,0,33,67,67)
@@ -184,6 +186,11 @@ NumPadEnter & Numpad9::SnapWinPad(Mon, [50,33,20], [0,0,0], [50,67,80], [50,67,8
 #!Right::SnapWin(Mon,0,0,150,100)
 #^!Right::SnapWin(Mon,0,0,175,100)
 NumPadEnter & Right::SnapWinPad(Mon, [0,0,0], [0,0,0], [125,150,175], [100,100,100])
+
+NumPadEnter & NumPadSub::ShiftAltTab
+NumPadEnter & NumPadAdd::AltTab
+
+NumPadEnter & NumPadDiv::Reload
 
 ; Let NumPadEnter by itself still work
 NumPadEnter::Send {NumPadEnter}
@@ -324,9 +331,14 @@ PrepWin(Mon)
 CrctnFctr()
 {
 	WinGet, PNameWin, ProcessName, A
-	If (PNameWin in "code.exe,spotify.exe,outlook.exe,lync.exe,winword.exe,excel.exe,revu.exe,teams.exe")
+	If PNameWin in code.exe,spotify.exe,outlook.exe,lync.exe,winword.exe,excel.exe,revu.exe,teams.exe
 	{
-		Return { Hrz: 0, Hgt: 0, Wdt: 0 }
+		If (InStr(A_OSVersion, "10.0.") == 1)
+		{
+			Return { Hrz: 0, Hgt: 1, Wdt: 0 }
+		} Else {
+			Return { Hrz: 0, Hgt: 0, Wdt: 0 }
+		}
 	}
 	; For some reason, there is an offset when working with Explorer and Chrome
 	Else
