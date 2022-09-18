@@ -1,4 +1,4 @@
-; *********************************************************************************
+﻿; *********************************************************************************
 ; 		Automatic Mapping of All Monitors, Move & Resize Windows  -START-
 ; *********************************************************************************
 
@@ -195,6 +195,41 @@ NumPadEnter & NumPadDiv::Reload
 ; Let NumPadEnter by itself still work
 NumPadEnter::Send {NumPadEnter}
 
+; Ability to disable NumPadEnter combinations
+NumPadEnter & NumPad0::
+ToggleNumPadEnter:
+{
+	Hotkey, NumPadEnter & NumPad1, Toggle
+	Hotkey, NumPadEnter & NumPad2, Toggle
+	Hotkey, NumPadEnter & NumPad3, Toggle
+	Hotkey, NumPadEnter & NumPad4, Toggle
+	Hotkey, NumPadEnter & NumPad5, Toggle
+	Hotkey, NumPadEnter & NumPad6, Toggle
+	Hotkey, NumPadEnter & NumPad7, Toggle
+	Hotkey, NumPadEnter & NumPad8, Toggle
+	Hotkey, NumPadEnter & NumPad9, Toggle
+	Hotkey, NumPadEnter & Right, Toggle
+	Hotkey, NumPadEnter & NumPadSub, Toggle
+	Hotkey, NumPadEnter & NumPadAdd, Toggle
+	Return
+}
+
+; Additional symbols on the keyboard with Ctrl+Win
+#^'::°
+#^.::•
+#^[::«
+#^]::»
+#^-::±
+#^=::≠
+#^+,::≤
+#^+.::≥
+#^+`::≈
+#^8::∞
+#^/::÷
+#^+4::¢
+
+; Allow for NumPadEnter to function similar to the Windows key for SnapWin
+; in a virtual environment that doesn't detect actual Windows keypresses
 SnapWinPad(Mon, LeftPct, TopPct, WdtPct, HgtPct)
 {
 	If (GetKeyState("Control") AND GetKeyState("Alt"))
@@ -211,6 +246,7 @@ SnapWinPad(Mon, LeftPct, TopPct, WdtPct, HgtPct)
 	}
 }
 
+; Main function to resize and snap a window to a corner or edge
 SnapWin(Mon, LftPct = 0, TopPct = 0, WdtPct = 100, HgtPct = 100, ExtraKeys = 0)
 {
 	If (IsObject(ExtraKeys))
@@ -242,7 +278,7 @@ SnapWin(Mon, LftPct = 0, TopPct = 0, WdtPct = 100, HgtPct = 100, ExtraKeys = 0)
 }
 
 #^+Up::
-ExtendTopEdge:
+ExtendToTopEdge:
 {
 	If (IgnorePrgrm())
 	{
@@ -257,7 +293,7 @@ ExtendTopEdge:
 }
 
 #^+Down::
-ExtendBtmEdge:
+ExtendToBtmEdge:
 {
 	If (IgnorePrgrm())
 	{
@@ -271,7 +307,7 @@ ExtendBtmEdge:
 }
 
 #^+Left::
-ExtendLftEdge:
+ExtendToLftEdge:
 {
 	If (IgnorePrgrm())
 	{
@@ -286,7 +322,7 @@ ExtendLftEdge:
 }
 
 #^+Right::
-ExtendRgtEdge:
+ExtendToRgtEdge:
 {
 	If (IgnorePrgrm())
 	{

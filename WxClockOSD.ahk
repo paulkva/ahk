@@ -1,4 +1,6 @@
-; WxClockOSD v1.0 (2022-09-17)
+﻿; WxClockOSD v1.0 (2022-09-17)
+; Optimized to show in the middle of a 48px-high taskbar at the bottom of the screen
+; Make sure to save this file as UTF-8 with BOM, otherwise AHK mangles the ° symbols
 
 #NoEnv
 #SingleInstance force
@@ -12,7 +14,7 @@ global appVersion := "v1.0"
 global AutoGuiW, BkColor, Bottom_OffsetX, Bottom_OffsetY, Bottom_Screen, Bottom_Win, DisplaySec, FixedX, FixedY
      , FontColor, FontName, FontSize, FontStyle, GuiHeight, GuiPosition, GuiWidth, SettingsGuiIsOpen
      , ShowModifierKeyCount, ShowMouseButton, ShowSingleKey, ShowSingleModifierKey, ShowStickyModKeyCount
-     , Top_OffsetX, Top_OffsetY, Top_Screen, Top_Win, TransN, WxApiToken, WxLat, WxLon, WxUnits
+     , Top_OffsetX, Top_OffsetY, Top_Screen, Top_Win, TransN, WxApiToken, WxLat, WxLon, WxUnits, WxUpdateInterval
      , oLast := {}, hGui_OSD, hGUI_s
 
 ReadSettings()
@@ -24,7 +26,7 @@ GoSub, UpdateWx
 return
 
 #NumPadDiv::
-ShowStatus:
+DebugSize:
 {
 	GuicontrolGet, WxClockInfo, Pos, WxClockText
 	MsgBox Coordinates ( %WxClockInfoX% , %WxClockInfoY% ) Size ( %WxClockInfoW% x %WxClockInfoH% )
@@ -35,15 +37,29 @@ ShowStatus:
 #if !SettingsGuiIsOpen
 	UpdateClock:
 		try {
-			ShowClock()
-			SetTimer, UpdateClock, % 100
+			if (A_TimeIdle < WxUpdateInterval) {
+				ShowClock()
+				SetTimer, UpdateClock, % 100
+			} else {
+				; When idle: hide the display, don't try to update as often, and
+				; mark the weather info with ~ to indicate it might be outdated.
+				GuiControl, 1:Hide, WxImg
+				Gui, 1:Hide
+				if (SubStr(oLast.WxStr1, 1, 1) = "~") {
+				} else {
+					oLast.WxStr1 := "~ " . oLast.WxStr1 . " ~"
+				}
+				SetTimer, UpdateClock, % 5000
+			}
 		}
 	return
 
 	UpdateWx:
 		try {
-			ShowWx()
-			SetTimer, UpdateWx, % 300000
+			if (A_TimeIdle < WxUpdateInterval) {
+				ShowWx()
+			}
+			SetTimer, UpdateWx, % WxUpdateInterval
 		} catch e {
 			MsgBox % "Error in " e.What ", line " e.Line " : " e.Message "`n" e.Extra
 		}
@@ -67,14 +83,14 @@ CreateGUI() {
 	Gui, Add, Picture, vWxImg x0 y0 h%GuiHeight% w-1, .\cache\01n.png
 	WinSet, TransColor, %BkColor% 192
 
-	GuiStr := "M/d/yyyy | ddd h:mm:ss tt`n100.0'F scattered clouds`nF:100.0 H:100.0 L:60.0"
+	GuiStr := "h:mm:ss tt | ddd M/d/yyyy`n100.0°F scattered clouds | Feel: 101.0°`nL:60.0° | H:100.0° | W:12.3mph"
 	GuiControl, 1:, WxClockText, %GuiStr%
 	GuiControl, 1:Show, WxClockText
 	Gui, 1:Show, AutoSize NoActivate
 	GuicontrolGet, WxClockInfo, Pos, WxClockText
-	xPos := 50
+	xPos := GuiHeight
 	yPos := Round((GuiHeight - WxClockInfoH) / 2)
-	width := WxClockInfoW - 50
+	width := WxClockInfoW - GuiHeight
 	;MsgBox position is %WxClockInfoW% , %yPos%
 	Gui, 1:Hide
 	GuiControl, 1:Move, WxClockText, x%xPos% y%yPos% w%width%
@@ -135,7 +151,7 @@ MouseHotkey_Off() {
 }
 
 ShowClock() {
-	FormatTime, ClockStr, , M/d/yyyy | ddd h:mm:ss tt
+	FormatTime, ClockStr,, h:mm:ss tt | ddd M/d/yyyy
 	if (ClockStr != oLast.ClockStr) {
 		oLast.ClockStr := ClockStr
 		UpdateWin()
@@ -176,38 +192,44 @@ ShowWx() {
 	GuiControl,, WxImg, %imgFile%
 	GuiControl, 1:+Redraw, WxImg
 	GuiControl, 1:Move, WxImg, x0 y0
+	GuiControl, 1:Show, WxImg
 
+	; TODO: decide whether to include any forecast data (it's already showing a lot)
 	;Http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
 	;WxForecastUrl = %WxPrefix%forecast%WxQueryString%
 	;Http.Open("GET", WxForecastUrl)
 	;Http.Send()
 	;WxForecast := JSON.Load(Http.ResponseText)
 
-	oLast.WxStr := Round(WxCurrent.main.temp, 1) . "'F " . WxCurrent.weather[1].description
-	oLast.WxStr := oLast.WxStr . " | F:" . Round(WxCurrent.main.feels_like, 1)
-	oLast.WxStr := oLast.WxStr . "`nL:" . Round(WxCurrent.main.temp_min, 1)
-	oLast.WxStr := oLast.WxStr . " | H:" . Round(WxCurrent.main.temp_max, 1)
-	oLast.WxStr := oLast.WxStr . " | W:" . Round(WxCurrent.wind.speed, 1) . "mph"
+	; TODO: change °F and mph based on WxUnits setting
+	oLast.WxStr1 := Round(WxCurrent.main.temp, 1) . "°F " . WxCurrent.weather[1].description
+	if (Round(WxCurrent.main.temp, 1) = Round(WxCurrent.main.feels_like, 1)) {
+	} else {
+		oLast.WxStr1 := oLast.WxStr1 . " | Feel: " . Round(WxCurrent.main.feels_like, 1) . "°"
+	}	
+	oLast.WxStr2 := "L:" . Round(WxCurrent.main.temp_min, 1)
+	oLast.WxStr2 := oLast.WxStr2 . "° | H:" . Round(WxCurrent.main.temp_max, 1)
+	oLast.WxStr2 := oLast.WxStr2 . "° | W:" . Round(WxCurrent.wind.speed, 1) . "mph"
 
 	UpdateWin()
 }
 
 UpdateWin() {
-	GuiStr := oLast.ClockStr . "`n" . oLast.WxStr
+	GuiStr := oLast.ClockStr . "`n" . oLast.WxStr1 . "`n" . oLast.WxStr2
 
 	ActWin_X := (A_ScreenWidth - GuiWidth) / 2
 	ActWin_Y := A_ScreenHeight - GuiHeight
 	ActWin_W := GuiWidth
 	ActWin_H := GuiHeight
 
-	text_w := GuiWidth - 50
+	text_w := GuiWidth - GuiHeight
 	text_w := Round(text_w/(A_ScreenDPI/96))
 	text_h := GuiHeight
 	text_h := Round(text_h/(A_ScreenDPI/96))
 	ctrlSize = w%text_w% h%text_h%
 	; ToolTip, % obj_print(oLast) "`n`n" ctrlSize "`n" oLast.ctrlSize
 	if (ctrlSize != oLast.ctrlSize) {
-		GuiControl, 1:Move, WxClockText, x50 %ctrlSize%
+		GuiControl, 1:Move, WxClockText, x%GuiHeight% %ctrlSize%
 		oLast.ctrlSize := ctrlSize
 	}
 
@@ -358,6 +380,7 @@ ReadSettings() {
 	IniRead, WxLat                , %IniFile%, Settings, WxLat                , 38.89
 	IniRead, WxLon                , %IniFile%, Settings, WxLon                , -77.01
 	IniRead, WxUnits              , %IniFile%, Settings, WxUnits              , imperial
+	IniRead, WxUpdateInterval     , %IniFile%, Settings, WxUpdateInterval     , 300000
 }
 
 SaveSettings() {
@@ -393,6 +416,7 @@ SaveSettings() {
 	IniWrite, %WxLat%                , %IniFile%, Settings, WxLat
 	IniWrite, %WxLon%                , %IniFile%, Settings, WxLon
 	IniWrite, %WxUnits%              , %IniFile%, Settings, WxUnits
+	IniWrite, %WxUpdateInterval%     , %IniFile%, Settings, WxUpdateInterval
 }
 
 CreateTrayMenu() {
@@ -836,28 +860,4 @@ convert_Color(Color) { ; convert RGB <--> BGR
     Result := (Color & 0xFF) << 16 | Color & 0xFF00 | (Color >> 16) & 0xFF
     SetFormat, Integer, % $_FormatInteger
     Return, Result
-}
-
-JsonToAHK(json, rec := false) {
-   static doc := ComObjCreate("htmlfile")
-         , __ := doc.write("<meta http-equiv=""X-UA-Compatible"" content=""IE=9"">")
-         , JS := doc.parentWindow
-   if !rec
-      obj := JsonToAHK(JS.eval("(" . json . ")"), true)
-   else if !IsObject(json)
-      obj := json
-   else if json.toString() != "[object Object]" {
-      obj := []
-      Loop % json.length
-         obj.Push( JsonToAHK(json[A_Index - 1], true) )
-   }
-   else {
-      obj := {}
-      keys := JS.Object.keys(json)
-      Loop % keys.length {
-         k := keys[A_Index - 1]
-         obj[k] := JsonToAHK(json[k], true)
-      }
-   }
-   Return obj
 }
