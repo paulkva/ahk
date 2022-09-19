@@ -12,7 +12,7 @@ global appVersion := "v1.0"
 global BkColor, Bottom_OffsetX, Bottom_OffsetY, Bottom_Screen, Bottom_Win, FixedX, FixedY
      , FontColor, FontName, FontSize, FontStyle, GuiHeight, GuiPosition, GuiWidth
      , Top_OffsetX, Top_OffsetY, Top_Screen, Top_Win, TransN, TransBk
-	 , WxApiToken, WxLat, WxLon, WxUnits, WxUpdateInterval, WxPrecision, WxOneCall
+	 , WxApiToken, WxLat, WxLon, WxUnits, WxUpdateInterval, WxPrecision, WxOneCall, WxWind
      , oLast := {}, hGui_OSD, hGUI_s
 
 ReadSettings()
@@ -52,6 +52,7 @@ return
 
 ShowWx:
 try {
+	if (WxUpdateInterval < 60000) WxUpdateInterval := 60000
 	if (A_TimeIdle < WxUpdateInterval) {
 		UpdateWx()
 	}
@@ -77,7 +78,7 @@ CreateGUI() {
 		WinSet, Transparent, %TransN%
 	}
 
-	GuiStr := "h:mm:ss tt | ddd M/d/yyyy`n100.0°F scattered clouds | Feel: 101.0°`nL:60.0° | H:100.0° | W:12.3mph"
+	GuiStr := "h:mm:ss tt | ddd M/d/yyyy`n100.0°F scattered clouds | Feel: 103.0°`nL:60.0° | H:102.0° | W:12.3mph WSW"
 	GuiControl, 1:, WxClockText, %GuiStr%
 	GuiControl, 1:Show, WxClockText
 	Gui, 1:Show, AutoSize NoActivate
@@ -148,7 +149,8 @@ UpdateWx() {
 		Wx.feel := WxResponse.current.feels_like
 		Wx.min := WxResponse.daily[1].temp.min
 		Wx.max := WxResponse.daily[1].temp.max
-		Wx.wind := WxResponse.current.wind_speed
+		Wx.wspeed := WxResponse.current.wind_speed
+		Wx.wdir := WxResponse.current.wind_deg
 	} else {
 		Wx.img := WxResponse.weather[1].icon
 		Wx.cond := WxResponse.weather[1].description
@@ -156,7 +158,8 @@ UpdateWx() {
 		Wx.feel := WxResponse.main.feels_like
 		Wx.min := WxResponse.main.temp_min
 		Wx.max := WxResponse.main.temp_max
-		Wx.wind := WxResponse.wind.speed
+		Wx.wspeed := WxResponse.wind.speed
+		Wx.wdir := WxResponse.wind.deg
 	}
 
 	;MsgBox % JSON.Dump(Wx) " OneCall=" WxOneCall "`n" JSON.Dump(WxResponse)
@@ -169,7 +172,9 @@ UpdateWx() {
 	}	
 	oLast.WxStr2 := "L:" . Round(Wx.min, WxPrecision)
 	oLast.WxStr2 := oLast.WxStr2 . "° | H:" . Round(Wx.max, WxPrecision)
-	oLast.WxStr2 := oLast.WxStr2 . "° | W:" . Round(Wx.wind, WxPrecision) . "mph"
+	oLast.WxStr2 := oLast.WxStr2 . "° | W:" . Round(Wx.wspeed, WxPrecision) . "mph "
+	wdir := WxWind[Round(Wx.wdir / 22.5) + 1]
+	oLast.WxStr2 := oLast.WxStr2 . wdir
 
 	imgFile := ".\cache\" . Wx.img . ".png"
 	if (!FileExist(".\cache\" . Wx.img . ".png")) {
@@ -255,6 +260,8 @@ ReadSettings() {
 	IniRead, WxUpdateInterval     , %IniFile%, Settings, WxUpdateInterval     , 300000
 	IniRead, WxPrecision          , %IniFile%, Settings, WxPrecision          , 0
 	IniRead, WxOneCall            , %IniFile%, Settings, WxOneCall            , 1
+
+	WxWind := ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW", "N"]
 }
 
 CreateTrayMenu() {
