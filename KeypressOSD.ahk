@@ -67,12 +67,24 @@ CreateHotkey() {
 
 	Loop, 10 ; Numpad0 - Numpad9
 	{
-		Hotkey, % "~*Numpad" A_Index - 1, OnKeyPressed
-		Hotkey, % "~*Numpad" A_Index - 1 " Up", _OnKeyUp
+		Hotkey, % "~*NumPad" A_Index - 1, OnKeyPressed
+		Hotkey, % "~*NumPad" A_Index - 1 " Up", _OnKeyUp
 	}
 
-	Otherkeys := "WheelDown|WheelUp|WheelLeft|WheelRight|XButton1|XButton2|Browser_Forward|Browser_Back|Browser_Refresh|Browser_Stop|Browser_Search|Browser_Favorites|Browser_Home|Volume_Mute|Volume_Down|Volume_Up|Media_Next|Media_Prev|Media_Stop|Media_Play_Pause|Launch_Mail|Launch_Media|Launch_App1|Launch_App2|Help|Sleep|PrintScreen|CtrlBreak|Break|AppsKey|NumpadDot|NumpadDiv|NumpadMult|NumpadAdd|NumpadSub|NumpadEnter|Tab|Enter|Esc|BackSpace"
-	           . "|Del|Insert|Home|End|PgUp|PgDn|Up|Down|Left|Right|ScrollLock|CapsLock|NumLock|Pause|sc145|sc146|sc046|sc123"
+	Directionkeys := "Del|Ins|Home|End|PgUp|PgDn|Up|Down|Left|Right|Enter"
+	Loop, parse, Directionkeys, |
+	{
+		Hotkey, % "~*" A_LoopField, OnKeyPressed
+		Hotkey, % "~*" A_LoopField " Up", _OnKeyUp
+		Hotkey, % "~*NumPad" A_LoopField, OnKeyPressed
+		Hotkey, % "~*NumPad" A_LoopField " Up", _OnKeyUp
+	}
+
+	Otherkeys := "WheelDown|WheelUp|WheelLeft|WheelRight|XButton1|XButton2|Launch_Mail|Launch_Media|Launch_App1|Launch_App2"
+	           . "|Browser_Forward|Browser_Back|Browser_Refresh|Browser_Stop|Browser_Search|Browser_Favorites|Browser_Home"
+			   . "|Volume_Mute|Volume_Down|Volume_Up|Media_Next|Media_Prev|Media_Stop|Media_Play_Pause|Help|Sleep"
+			   . "|PrintScreen|CtrlBreak|Break|AppsKey|Tab|Esc|BackSpace|NumpadDot|NumpadDiv|NumpadMult|NumpadAdd|NumpadSub"
+	           . "|ScrollLock|CapsLock|NumLock|Pause|sc145|sc146|sc046|sc123"
 	Loop, parse, Otherkeys, |
 	{
 		Hotkey, % "~*" A_LoopField, OnKeyPressed
@@ -338,12 +350,17 @@ SaveSettings() {
 CreateTrayMenu() {
 	Menu, Tray, NoStandard
 	Menu, Tray, Add, Settings, ShowSettingsGUI
+	Menu, Tray, Add, Reload, DoReload
 	Menu, Tray, Add, Suspend, ToggleSuspend
 	Menu, Tray, Add, About, ShowAboutGUI
 	Menu, Tray, Add
 	Menu, Tray, Add, Exit, _ExitApp
 	Menu, Tray, Default, Settings
 	Menu, Tray, Tip, KeypressOSD
+}
+
+DoReload() {
+	Reload
 }
 
 ToggleSuspend() {

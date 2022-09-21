@@ -158,6 +158,8 @@ UpdateWx() {
 	Http.Send()
 	WxResponse := JSON.Load(Http.ResponseText)
 
+	; TODO: consider setting imgFile by weather[1].id which is more granular than icon
+	; Reference for both - https://openweathermap.org/weather-conditions
 	Wx := {}
 	if (WxOneCall = 1) {
 		Wx.img := WxResponse.current.weather[1].icon
