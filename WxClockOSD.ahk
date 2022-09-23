@@ -41,18 +41,17 @@ DebugSize:
 ShowClock:
 try {
 	if (A_TimeIdle < WxUpdateInterval) {
-		UpdateClock()
-		SetTimer, UpdateClock, % 100
+		NextInterval := UpdateClock(1)
+		SetTimer, ShowClock, % NextInterval
 	} else {
 		; When idle: hide the display, don't try to update as often, and
 		; mark the weather info with ~ to indicate it might be outdated.
-		;GuiControl, 1:Hide, WxImg
-		;Gui, 1:Hide
 		if (SubStr(oLast.WxStr1, 1, 1) = "~") {
 		} else {
 			oLast.WxStr1 := "~ " . oLast.WxStr1 . " ~"
 		}
-		SetTimer, ShowClock, % 5000
+		UpdateClock(0)
+		SetTimer, ShowClock, % 10000
 	}
 }
 return
@@ -73,7 +72,9 @@ try {
 	SetTimer, ShowWx, % WxUpdateInterval
 } catch e {
 	; Need to alert when weather fails to prevent issues with API limits
-	MsgBox % "Error in " e.What ", line " e.Line " : " e.Message "`n" e.Extra
+	oLast.WxStr1 := "Error in " e.What ", line " e.Line " : " e.Message
+	oLast.WxStr2 := e.Extra
+	UpdateWin()
 }
 return
 
@@ -115,13 +116,16 @@ CreateGUI() {
 	GuiControl, 1:Show, WxClockText
 }
 
-UpdateClock() {
+UpdateClock(ShowSeconds := 1) {
 	Separator := WxEnabled ? " | " : "`n"
-	FormatTime, ClockStr,, h:mm:ss tt%Separator%ddd M/d/yyyy
+	SecondStr := ShowSeconds ? ":ss" : ""
+	FormatTime, ClockStr,, h:mm%SecondStr% tt%Separator%ddd M/d/yyyy
 	if (ClockStr != oLast.ClockStr) {
 		oLast.ClockStr := ClockStr
 		UpdateWin()
+		Return 800
 	}
+	Return 80
 }
 
 UpdateWx() {
