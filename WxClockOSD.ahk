@@ -13,13 +13,21 @@ global BkColor, Bottom_OffsetX, Bottom_OffsetY, Bottom_Screen, Bottom_Win, Fixed
      , FontColor, FontName, FontSize, FontStyle, GuiHeight, GuiPosition, GuiWidth
      , Top_OffsetX, Top_OffsetY, Top_Screen, Top_Win, TransN, TransBk, WxEnabled
 	 , WxApiToken, WxLat, WxLon, WxUnits, WxUpdateInterval, WxPrecision, WxOneCall, WxWind
-     , oLast := {}, hGui_OSD, hGUI_s
+     , oLast := {}, hGui_OSD, hGUI_s, ImgIndex := 1, ImgSuffix := "d"
 
 ReadSettings()
 CreateTrayMenu()
 CreateGUI()
 GoSub, ShowClock
 GoSub, ShowWx
+
+#SingleInstance
+OnMessage(0x7E, "WM_DISPLAYCHANGE")
+
+WM_DISPLAYCHANGE(wParam, lParam) {
+	Reload
+}
+
 return
 
 #NumPadDiv::
@@ -39,8 +47,8 @@ try {
 	} else {
 		; When idle: hide the display, don't try to update as often, and
 		; mark the weather info with ~ to indicate it might be outdated.
-		GuiControl, 1:Hide, WxImg
-		Gui, 1:Hide
+		;GuiControl, 1:Hide, WxImg
+		;Gui, 1:Hide
 		if (SubStr(oLast.WxStr1, 1, 1) = "~") {
 		} else {
 			oLast.WxStr1 := "~ " . oLast.WxStr1 . " ~"
@@ -98,7 +106,7 @@ CreateGUI() {
 
 	WxImgSize := GuiHeight < 50 ? GuiHeight : 50
 	if (WxEnabled) {
-		Gui, Add, Picture, vWxImg x0 y0 h%WxImgSize% w%WxImgSize%, .\cache\01n.png
+		Gui, Add, Picture, vWxImg x0 y0 h%WxImgSize% w%WxImgSize%, .\wx\unknown.png
 	}
 	xPos := WxEnabled ? WxImgSize : 0
 	yPos := Round((GuiHeight - WxClockInfoH) / 2)
@@ -115,6 +123,96 @@ UpdateClock() {
 		oLast.ClockStr := ClockStr
 		UpdateWin()
 	}
+}
+
+UpdateWx() {
+	WxPrefix := "https://api.openweathermap.org/data/"
+	WxQueryString = ?lat=%WxLat%&lon=%WxLon%&units=%WxUnits%&appid=%WxApiToken%
+
+	Http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+	if (WxOneCall = 1) {
+		WxUrl = %WxPrefix%3.0/onecall%WxQueryString%
+	} else {
+		WxUrl = %WxPrefix%2.5/weather%WxQueryString%
+	}
+	Http.Open("GET", WxUrl)
+	Http.Send()
+	WxResponse := JSON.Load(Http.ResponseText)
+
+	; TODO: consider setting imgFile by weather[1].id which is more granular than icon
+	; Reference for both - https://openweathermap.org/weather-conditions
+	Wx := {}
+	if (WxOneCall = 1) {
+		Wx.id := WxResponse.current.weather[1].id
+		Wx.icon := WxResponse.current.weather[1].icon
+		Wx.cond := WxResponse.current.weather[1].description
+		Wx.temp := WxResponse.current.temp
+		Wx.feel := WxResponse.current.feels_like
+		Wx.min := WxResponse.daily[1].temp.min
+		Wx.max := WxResponse.daily[1].temp.max
+		Wx.wspeed := WxResponse.current.wind_speed
+		Wx.wdir := WxResponse.current.wind_deg
+	} else {
+		Wx.id := WxResponse.weather[1].id
+		Wx.icon := WxResponse.weather[1].icon
+		Wx.cond := WxResponse.weather[1].description
+		Wx.temp := WxResponse.main.temp
+		Wx.feel := WxResponse.main.feels_like
+		Wx.min := WxResponse.main.temp_min
+		Wx.max := WxResponse.main.temp_max
+		Wx.wspeed := WxResponse.wind.speed
+		Wx.wdir := WxResponse.wind.deg
+	}
+
+	; TODO: change °F and mph based on WxUnits setting
+	oLast.WxStr1 := Round(Wx.temp, WxPrecision) . "°F " . Wx.cond
+	if (Abs(Wx.temp - Wx.feel) > 1) {
+		oLast.WxStr1 := oLast.WxStr1 . " | Feel: " . Round(Wx.feel, WxPrecision) . "°"
+	}	
+	oLast.WxStr2 := "L:" . Round(Wx.min, WxPrecision)
+	oLast.WxStr2 := oLast.WxStr2 . "° | H:" . Round(Wx.max, WxPrecision)
+	oLast.WxStr2 := oLast.WxStr2 . "° | W:" . Round(Wx.wspeed, WxPrecision) . "mph "
+	wdir := WxWind[Round(Wx.wdir / 22.5) + 1]
+	oLast.WxStr2 := oLast.WxStr2 . wdir
+
+	imgFile := ".\wx\code" . Wx.id . SubStr(Wx.icon, 0) . ".png"
+	if (!FileExist(imgFile)) {
+		imgFile := ".\wx\" . Wx.icon . ".png"
+		imgUrl := "http://openweathermap.org/img/wn/" . Wx.icon . ".png"
+		URLDownloadToFile, %imgUrl%, %imgFile%
+	}
+	GuiControl, 1:-Redraw, WxImg
+	GuiControl,, WxImg, %imgFile%
+	GuiControl, 1:+Redraw, WxImg
+	GuiControl, 1:Move, WxImg, x0 y0
+	GuiControl, 1:Show, WxImg
+
+	UpdateWin()
+}
+
+#^F1::
+CycleWxImg:
+{
+	WxImgs := StrSplit("200,201,202,210,211,212,221,230,231,232,300,301,302,310,311,312,313,314,321,500,501,502,503,504,511,520,521,522,531,600,601,602,611,612,613,615,616,620,621,622,701,711,721,731,741,751,761,762,771,781,800,801,802,803,804", ",")
+	imgFile := ".\wx\code" . WxImgs[ImgIndex] . ImgSuffix . ".png"
+	oLast.wxStr2 := imgFile . " (" . ImgIndex . ")"
+	GuiControl, 1:-Redraw, WxImg
+	GuiControl,, WxImg, %imgFile%
+	GuiControl, 1:+Redraw, WxImg
+	GuiControl, 1:Move, WxImg, x0 y0
+	GuiControl, 1:Show, WxImg
+
+	if (ImgSuffix = "d") {
+		ImgSuffix := "n"
+	} else {
+		ImgSuffix := "d"
+		ImgIndex := ImgIndex + 1
+	}
+	if (ImgIndex > WxImgs.MaxIndex()) {
+		ImgIndex := 1
+	}
+	UpdateWin()
+	Return
 }
 
 #NumPadMult::
@@ -142,68 +240,6 @@ DebugWx:
 	MsgBox % Http.ResponseText
 
 	Return
-}
-
-UpdateWx() {
-	WxPrefix := "https://api.openweathermap.org/data/"
-	WxQueryString = ?lat=%WxLat%&lon=%WxLon%&units=%WxUnits%&appid=%WxApiToken%
-
-	Http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-	if (WxOneCall = 1) {
-		WxUrl = %WxPrefix%3.0/onecall%WxQueryString%
-	} else {
-		WxUrl = %WxPrefix%2.5/weather%WxQueryString%
-	}
-	Http.Open("GET", WxUrl)
-	Http.Send()
-	WxResponse := JSON.Load(Http.ResponseText)
-
-	; TODO: consider setting imgFile by weather[1].id which is more granular than icon
-	; Reference for both - https://openweathermap.org/weather-conditions
-	Wx := {}
-	if (WxOneCall = 1) {
-		Wx.img := WxResponse.current.weather[1].icon
-		Wx.cond := WxResponse.current.weather[1].description
-		Wx.temp := WxResponse.current.temp
-		Wx.feel := WxResponse.current.feels_like
-		Wx.min := WxResponse.daily[1].temp.min
-		Wx.max := WxResponse.daily[1].temp.max
-		Wx.wspeed := WxResponse.current.wind_speed
-		Wx.wdir := WxResponse.current.wind_deg
-	} else {
-		Wx.img := WxResponse.weather[1].icon
-		Wx.cond := WxResponse.weather[1].description
-		Wx.temp := WxResponse.main.temp
-		Wx.feel := WxResponse.main.feels_like
-		Wx.min := WxResponse.main.temp_min
-		Wx.max := WxResponse.main.temp_max
-		Wx.wspeed := WxResponse.wind.speed
-		Wx.wdir := WxResponse.wind.deg
-	}
-
-	; TODO: change °F and mph based on WxUnits setting
-	oLast.WxStr1 := Round(Wx.temp, WxPrecision) . "°F " . Wx.cond
-	if (Abs(Wx.temp - Wx.feel) > 1) {
-		oLast.WxStr1 := oLast.WxStr1 . " | Feel: " . Round(Wx.feel, WxPrecision) . "°"
-	}	
-	oLast.WxStr2 := "L:" . Round(Wx.min, WxPrecision)
-	oLast.WxStr2 := oLast.WxStr2 . "° | H:" . Round(Wx.max, WxPrecision)
-	oLast.WxStr2 := oLast.WxStr2 . "° | W:" . Round(Wx.wspeed, WxPrecision) . "mph "
-	wdir := WxWind[Round(Wx.wdir / 22.5) + 1]
-	oLast.WxStr2 := oLast.WxStr2 . wdir
-
-	imgFile := ".\cache\" . Wx.img . ".png"
-	if (!FileExist(".\cache\" . Wx.img . ".png")) {
-		imgUrl := "http://openweathermap.org/img/wn/" . Wx.img . ".png"
-		URLDownloadToFile, %imgUrl%, %imgFile%
-	}
-	GuiControl, 1:-Redraw, WxImg
-	GuiControl,, WxImg, %imgFile%
-	GuiControl, 1:+Redraw, WxImg
-	GuiControl, 1:Move, WxImg, x0 y0
-	GuiControl, 1:Show, WxImg
-
-	UpdateWin()
 }
 
 UpdateWin() {

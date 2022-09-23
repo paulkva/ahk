@@ -21,6 +21,8 @@ Mon.Rgt := []
 ; Variables used for Row Alignment with Bottom of Monitors
 MonDIMBtmT := []
 
+;InitMon()
+;{
 ; Retrieve the Quantity of Monitors connected to system
 SysGet, MonQty, MonitorCount
 
@@ -116,8 +118,15 @@ Loop, %RowQty%
 	}
 }
 
+#SingleInstance
+OnMessage(0x7E, "WM_DISPLAYCHANGE")
+
+WM_DISPLAYCHANGE(wParam, lParam) {
+	Reload
+}
+
 CreateGUI()
-ShowOSD("WindowMappings Ready", 2000)
+ShowOSD("WindowMappings Ready: " . MonQty, 1000)
 
 ; NumPad1/End :: Bottom Left 50% / 67% / 80%
 #^NumPadEnd::
@@ -447,7 +456,7 @@ SnapWin(LftPct = 0, TopPct = 0, WdtPct = 100, HgtPct = 100, ExtraKeys = 0)
 	TgtHgt := Floor(MonHgt * HgtPct / 100) + Win.CF.Hgt
 
 	WinMove, A, , TgtLft, TgtTop, TgtWdt, TgtHgt
-	ShowOSD(Win.Proc ": (" TgtLft " , " TgtTop ") " TgtWdt " x " TgtHgt, 3000)
+	ShowOSD(Win.Proc ": (" TgtLft " , " TgtTop ") " TgtWdt " x " TgtHgt, 2000)
 	Return
 }
 
@@ -552,9 +561,9 @@ CreateGUI() {
 	Gui, +AlwaysOnTop -Caption +Owner +LastFound +E0x20 +HWNDhGui_OSD
 	Gui, Margin, 0, 0
 	Gui, Color, 000000
-	Gui, Font, c66FF66 s36 w400, Tahoma
+	Gui, Font, c66FF66 s32 w400, Tahoma
 	Gui, Add, Text, vOSDText Center Center
-	WinSet, Transparent, 200
+	WinSet, Transparent, 160
 	Menu, Tray, Tip, WindowMappings
 }
 
@@ -566,19 +575,18 @@ ShowOSD(OSDStr, Timeout) {
 
 	text_w := Mon.Rgt[M] - Mon.Lft[M]
 	text_w := Round( text_w/(A_ScreenDPI/96) )
-	ctrlSize = w%text_w% h120
+	ctrlSize = w%text_w% h72
 	GuiControl, 1:, OSDText, %OSDStr%
 	GuiControl, 1:Move, OSDText, x0 y0 %ctrlSize%
 	GuiControl, +0x201, OSDText
 	gui_x := Mon.Lft[M]
-	gui_y := Round((Mon.Btm[M] + Mon.Top[M]) / 2) - 60
+	gui_y := Mon.Btm[M] - 144
 	guiPos = x%gui_x% y%gui_y%
 	Gui, 1:Show, NoActivate %guiPos% %ctrlSize%
 	SetTimer, HideOSD, % Timeout
 }
 
-HideOSD()
-{
+HideOSD() {
 	GuiControl, 1:, OSDText, % ""
 	Gui, 1:Hide
 }
