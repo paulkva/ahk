@@ -1,6 +1,7 @@
 ﻿; *********************************************************************************
 ; 		Automatic Mapping of All Monitors, Move & Resize Windows  -START-
 ; *********************************************************************************
+#SingleInstance force
 
 ; Initialization of Arrays used
 ; Variables used for Temporary Monitor Number used to later organize Monitors in Ascending Order
@@ -118,7 +119,6 @@ Loop, %RowQty%
 	}
 }
 
-#SingleInstance
 OnMessage(0x7E, "WM_DISPLAYCHANGE")
 
 WM_DISPLAYCHANGE(wParam, lParam) {

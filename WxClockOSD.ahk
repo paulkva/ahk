@@ -21,7 +21,6 @@ CreateGUI()
 GoSub, ShowClock
 GoSub, ShowWx
 
-#SingleInstance
 OnMessage(0x7E, "WM_DISPLAYCHANGE")
 
 WM_DISPLAYCHANGE(wParam, lParam) {
