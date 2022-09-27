@@ -2,6 +2,7 @@
 ; 		Automatic Mapping of All Monitors, Move & Resize Windows  -START-
 ; *********************************************************************************
 #SingleInstance force
+#Persistent
 
 ; Initialization of Arrays used
 ; Variables used for Temporary Monitor Number used to later organize Monitors in Ascending Order
@@ -122,11 +123,17 @@ Loop, %RowQty%
 OnMessage(0x7E, "WM_DISPLAYCHANGE")
 
 WM_DISPLAYCHANGE(wParam, lParam) {
+	SetTimer, Restart, % 5000
+}
+
+Restart() {
 	Reload
+	Sleep % 1000
+	ExitApp
 }
 
 CreateGUI()
-ShowOSD("WindowMappings Ready: " . MonQty, 1000)
+ShowOSD("WindowMappings Ready @ " . WinCurntMon() . "/" . MonQty, 1000)
 
 ; NumPad1/End :: Bottom Left 50% / 67% / 80%
 #^NumPadEnd::
@@ -267,7 +274,7 @@ ExtendToRgtEdge:
 }
 
 ; Win Ctrl Alt NumPadDiv :: Reload (and recompute screens)
-^!+NumPadDiv::Reload
+^!+NumPadDiv::Restart()
 
 ^!+NumPadMult::ToggleDebugOSD()
 ToggleDebugOSD() {
@@ -456,7 +463,7 @@ SnapWin(LftPct = 0, TopPct = 0, WdtPct = 100, HgtPct = 100, ExtraKeys = 0)
 	TgtHgt := Floor(MonHgt * HgtPct / 100) + Win.CF.Hgt
 
 	WinMove, A, , TgtLft, TgtTop, TgtWdt, TgtHgt
-	ShowOSD(Win.Proc ": (" TgtLft " , " TgtTop ") " TgtWdt " x " TgtHgt, 2000)
+	ShowOSD(Win.Proc " @ " . Win.M . ": (" TgtLft " , " TgtTop ") " TgtWdt " x " TgtHgt, 2000)
 	Return
 }
 
@@ -567,11 +574,13 @@ CreateGUI() {
 	Menu, Tray, Tip, WindowMappings
 }
 
-ShowOSD(OSDStr, Timeout) {
+ShowOSD(OSDStr, Timeout, M := 0) {
 	if (!DebugOSD) {
 		Return
 	}
-	M := WinCurntMon()
+	if (M = 0) {
+		M := WinCurntMon()
+	}
 
 	text_w := Mon.Rgt[M] - Mon.Lft[M]
 	text_w := Round( text_w/(A_ScreenDPI/96) )
@@ -582,8 +591,12 @@ ShowOSD(OSDStr, Timeout) {
 	gui_x := Mon.Lft[M]
 	gui_y := Mon.Btm[M] - 144
 	guiPos = x%gui_x% y%gui_y%
-	Gui, 1:Show, NoActivate %guiPos% %ctrlSize%
-	SetTimer, HideOSD, % Timeout
+	if (gui_x > 0 && gui_y > 0 && text_w > 0) {
+		Gui, 1:Show, NoActivate %guiPos% %ctrlSize%
+		SetTimer, HideOSD, % Timeout
+	} else {
+		;SetTimer, Restart, % 5000
+	}
 }
 
 HideOSD() {

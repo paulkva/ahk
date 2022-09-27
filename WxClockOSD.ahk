@@ -24,7 +24,13 @@ GoSub, ShowWx
 OnMessage(0x7E, "WM_DISPLAYCHANGE")
 
 WM_DISPLAYCHANGE(wParam, lParam) {
+	SetTimer, Restart, % 5000
+}
+
+Restart() {
 	Reload
+	Sleep % 1000
+	ExitApp
 }
 
 return
