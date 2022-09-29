@@ -18,6 +18,7 @@ global BkColor, Bottom_OffsetX, Bottom_OffsetY, Bottom_Screen, Bottom_Win, Fixed
 ReadSettings()
 CreateTrayMenu()
 CreateGUI()
+UpdateWx()
 GoSub, ShowClock
 GoSub, ShowWx
 
@@ -52,9 +53,9 @@ try {
 	} else {
 		; When idle: hide the display, don't try to update as often, and
 		; mark the weather info with ~ to indicate it might be outdated.
-		if (SubStr(oLast.WxStr1, 1, 1) = "~") {
-		} else {
-			oLast.WxStr1 := "~ " . oLast.WxStr1 . " ~"
+		if (!(SubStr(oLast.WxStr1, 1, 1) = "(")) {
+			FormatTime, FreezeTime,, h:mm
+			oLast.WxStr1 := "(" . FreezeTime . ") " . oLast.WxStr1
 		}
 		UpdateClock(0)
 		SetTimer, ShowClock, % 10000
