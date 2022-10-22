@@ -503,7 +503,7 @@ PrepWin()
 CrctnFctr()
 {
 	WinGet, PNameWin, ProcessName, A
-	If PNameWin in code.exe,spotify.exe,outlook.exe,lync.exe,winword.exe,excel.exe,revu.exe,teams.exe
+	If PNameWin in code.exe,spotify.exe,outlook.exe,lync.exe,winword.exe,excel.exe,revu.exe,teams.exe,slack.exe
 	{
 		If (InStr(A_OSVersion, "10.0.") == 1)
 		{

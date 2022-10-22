@@ -145,57 +145,64 @@ UpdateWx() {
 	} else {
 		WxUrl = %WxPrefix%2.5/weather%WxQueryString%
 	}
-	Http.Open("GET", WxUrl)
-	Http.Send()
-	WxResponse := JSON.Load(Http.ResponseText)
 
-	; TODO: consider setting imgFile by weather[1].id which is more granular than icon
-	; Reference for both - https://openweathermap.org/weather-conditions
-	Wx := {}
-	if (WxOneCall = 1) {
-		Wx.id := WxResponse.current.weather[1].id
-		Wx.icon := WxResponse.current.weather[1].icon
-		Wx.cond := WxResponse.current.weather[1].description
-		Wx.temp := WxResponse.current.temp
-		Wx.feel := WxResponse.current.feels_like
-		Wx.min := WxResponse.daily[1].temp.min
-		Wx.max := WxResponse.daily[1].temp.max
-		Wx.wspeed := WxResponse.current.wind_speed
-		Wx.wdir := WxResponse.current.wind_deg
-	} else {
-		Wx.id := WxResponse.weather[1].id
-		Wx.icon := WxResponse.weather[1].icon
-		Wx.cond := WxResponse.weather[1].description
-		Wx.temp := WxResponse.main.temp
-		Wx.feel := WxResponse.main.feels_like
-		Wx.min := WxResponse.main.temp_min
-		Wx.max := WxResponse.main.temp_max
-		Wx.wspeed := WxResponse.wind.speed
-		Wx.wdir := WxResponse.wind.deg
+	try {
+		Http.Open("GET", WxUrl)
+		Http.Send()
+		WxResponse := JSON.Load(Http.ResponseText)
+
+		; TODO: consider setting imgFile by weather[1].id which is more granular than icon
+		; Reference for both - https://openweathermap.org/weather-conditions
+		Wx := {}
+		if (WxOneCall = 1) {
+			Wx.id := WxResponse.current.weather[1].id
+			Wx.icon := WxResponse.current.weather[1].icon
+			Wx.cond := WxResponse.current.weather[1].description
+			Wx.temp := WxResponse.current.temp
+			Wx.feel := WxResponse.current.feels_like
+			Wx.min := WxResponse.daily[1].temp.min
+			Wx.max := WxResponse.daily[1].temp.max
+			Wx.wspeed := WxResponse.current.wind_speed
+			Wx.wdir := WxResponse.current.wind_deg
+		} else {
+			Wx.id := WxResponse.weather[1].id
+			Wx.icon := WxResponse.weather[1].icon
+			Wx.cond := WxResponse.weather[1].description
+			Wx.temp := WxResponse.main.temp
+			Wx.feel := WxResponse.main.feels_like
+			Wx.min := WxResponse.main.temp_min
+			Wx.max := WxResponse.main.temp_max
+			Wx.wspeed := WxResponse.wind.speed
+			Wx.wdir := WxResponse.wind.deg
+		}
+
+		; TODO: change °F and mph based on WxUnits setting
+		oLast.WxStr1 := Round(Wx.temp, WxPrecision) . "°F " . Wx.cond
+		if (Abs(Wx.temp - Wx.feel) > 1) {
+			oLast.WxStr1 := oLast.WxStr1 . " | Feel: " . Round(Wx.feel, WxPrecision) . "°"
+		}	
+		oLast.WxStr2 := "L:" . Round(Wx.min, WxPrecision)
+		oLast.WxStr2 := oLast.WxStr2 . "° | H:" . Round(Wx.max, WxPrecision)
+		oLast.WxStr2 := oLast.WxStr2 . "° | W:" . Round(Wx.wspeed, WxPrecision) . "mph "
+		wdir := WxWind[Round(Wx.wdir / 22.5) + 1]
+		oLast.WxStr2 := oLast.WxStr2 . wdir
+
+		imgFile := ".\wx\code" . Wx.id . SubStr(Wx.icon, 0) . ".png"
+		if (!FileExist(imgFile)) {
+			imgFile := ".\wx\" . Wx.icon . ".png"
+			imgUrl := "http://openweathermap.org/img/wn/" . Wx.icon . ".png"
+			URLDownloadToFile, %imgUrl%, %imgFile%
+		}
+		GuiControl, 1:-Redraw, WxImg
+		GuiControl,, WxImg, %imgFile%
+		GuiControl, 1:+Redraw, WxImg
+		GuiControl, 1:Move, WxImg, x0 y0
+		GuiControl, 1:Show, WxImg
+	} catch e {
+		; Need to alert when weather fails to prevent issues with API limits
+		oLast.WxStr1 := "Error in " e.What ", line " e.Line " : " e.Message
+		oLast.WxStr2 := e.Extra
 	}
-
-	; TODO: change °F and mph based on WxUnits setting
-	oLast.WxStr1 := Round(Wx.temp, WxPrecision) . "°F " . Wx.cond
-	if (Abs(Wx.temp - Wx.feel) > 1) {
-		oLast.WxStr1 := oLast.WxStr1 . " | Feel: " . Round(Wx.feel, WxPrecision) . "°"
-	}	
-	oLast.WxStr2 := "L:" . Round(Wx.min, WxPrecision)
-	oLast.WxStr2 := oLast.WxStr2 . "° | H:" . Round(Wx.max, WxPrecision)
-	oLast.WxStr2 := oLast.WxStr2 . "° | W:" . Round(Wx.wspeed, WxPrecision) . "mph "
-	wdir := WxWind[Round(Wx.wdir / 22.5) + 1]
-	oLast.WxStr2 := oLast.WxStr2 . wdir
-
-	imgFile := ".\wx\code" . Wx.id . SubStr(Wx.icon, 0) . ".png"
-	if (!FileExist(imgFile)) {
-		imgFile := ".\wx\" . Wx.icon . ".png"
-		imgUrl := "http://openweathermap.org/img/wn/" . Wx.icon . ".png"
-		URLDownloadToFile, %imgUrl%, %imgFile%
-	}
-	GuiControl, 1:-Redraw, WxImg
-	GuiControl,, WxImg, %imgFile%
-	GuiControl, 1:+Redraw, WxImg
-	GuiControl, 1:Move, WxImg, x0 y0
-	GuiControl, 1:Show, WxImg
 
 	UpdateWin()
 }
@@ -307,7 +314,7 @@ HideGUI() {
 ;
 ; Excluding WxApiToken prevents all attempts at displaying/updating weather
 ;
-; Default lat/lon is the US Capitol in Washington DC
+; Default lat/lon is the US Capitol building in Washington DC
 ;-----------------------------------------------------------------------------
 ReadSettings() {
 	IniFile := SubStr(A_ScriptFullPath, 1, -4) ".ini"
