@@ -273,9 +273,10 @@ ExtendToRgtEdge:
 	Return
 }
 
-; Win Ctrl Alt NumPadDiv :: Reload (and recompute screens)
+; Ctrl Alt Shift NumPadDiv :: Reload (and recompute screens)
 ^!+NumPadDiv::Restart()
 
+; Ctrl Alt Shift NumPadMult :: Toggle Debug OSD
 ^!+NumPadMult::ToggleDebugOSD()
 ToggleDebugOSD() {
 	N := GetKeyState("NumLock", "T")
@@ -291,11 +292,12 @@ ToggleDebugOSD() {
 #^]::»
 #^-::±
 #^=::≠
+#^8::∞
+#^/::÷
+; Additional symbols on the keyboard with Ctrl+Win+Shift
 #^+,::≤
 #^+.::≥
 #^+`::≈
-#^8::∞
-#^/::÷
 #^+4::¢
 
 ;-----------------------------------------------------------------------------
@@ -591,7 +593,7 @@ ShowOSD(OSDStr, Timeout, M := 0) {
 	gui_x := Mon.Lft[M]
 	gui_y := Mon.Btm[M] - 144
 	guiPos = x%gui_x% y%gui_y%
-	if (gui_x > 0 && gui_y > 0 && text_w > 0) {
+	if (M > 0 && gui_x >= 0 && gui_y >= 0 && text_w > 0) {
 		Gui, 1:Show, NoActivate %guiPos% %ctrlSize%
 		SetTimer, HideOSD, % Timeout
 	} else {
