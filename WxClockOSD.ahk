@@ -39,8 +39,9 @@ return
 #NumPadDiv::
 DebugSize:
 {
-	GuicontrolGet, WxClockInfo, Pos, WxClockText
-	MsgBox Coordinates ( %WxClockInfoX% , %WxClockInfoY% ) Size ( %WxClockInfoW% x %WxClockInfoH% )
+	GuicontrolGet, WxClockInfo1, Pos, WxClockText1
+	GuicontrolGet, WxClockInfo2, Pos, WxClockText2
+	MsgBox 1 Coordinates ( %WxClockInfo1X% , %WxClockInfo1Y% ) 1 Size ( %WxClockInfo1W% x %WxClockInfo1H% ) `n 2 Coordinates ( %WxClockInfo2X% , %WxClockInfo2Y% ) 2 Size ( %WxClockInfo2W% x %WxClockInfo2H% )
 }
 
 #^NumPadDiv::Reload
@@ -81,7 +82,7 @@ try {
 	; Need to alert when weather fails to prevent issues with API limits
 	oLast.WxStr1 := "Error in " e.What ", line " e.Line " : " e.Message
 	oLast.WxStr2 := e.Extra
-	UpdateWin()
+	UpdateWin(0,1)
 }
 return
 
@@ -97,7 +98,7 @@ CreateGUI() {
 	Gui, Color, %BkColor%
 	Gui, Font, c%FontColor% %FontStyle% s%FontSize%, %FontName%
 	TextRows := WxEnabled ? 3 : 2
-	Gui, Add, Text, vWxClockText r%TextRows% Center Center
+	Gui, Add, Text, vWxClockTemp r%TextRows% Center Center
 
 	if (TransBk = 1) {
 		WinSet, TransColor, %BkColor% %TransN%
@@ -105,22 +106,41 @@ CreateGUI() {
 		WinSet, Transparent, %TransN%
 	}
 
+	; Put all text together temporarily for size calculations, then hide it and create two separate text controls
 	GuiStr := "h:mm:ss tt | ddd M/d/yyyy" . (WxEnabled ? "`n100.0°F scattered clouds | Feel: 103.0°`nL:60.0° | H:102.0° | W:12.3mph WSW" : "")
-	GuiControl, 1:, WxClockText, %GuiStr%
-	GuiControl, 1:Show, WxClockText
+	GuiControl, 1:, WxClockTemp, %GuiStr%
+	GuiControl, 1:Show, WxClockTemp
 	Gui, 1:Show, AutoSize NoActivate
-	GuicontrolGet, WxClockInfo, Pos, WxClockText
+	GuicontrolGet, WxClockInfo, Pos, WxClockTemp
+	GuiControl, 1:Hide, WxClockTemp
+	;MsgBox Coordinates ( %WxClockInfoX% , %WxClockInfoY% ) Size ( %WxClockInfoW% x %WxClockInfoH% )
 
+	rowHeight := Round(WxClockInfoH / 3)
 	WxImgSize := GuiHeight < 50 ? GuiHeight : 50
+	TextRows := WxEnabled ? 1 : 2
+
+	x := WxEnabled ? WxImgSize : 0
+	y1 := Round((GuiHeight - WxClockInfoH) / 2)
+	y2 := y1 + rowHeight
+	y3 := Round((GuiHeight - WxImgSize) / 2)
+	w := GuiWidth - (WxEnabled ? WxImgSize : 0)
+	h1 := rowHeight * TextRows
+	h2 := rowHeight * 2
+	;MsgBox r=%TextRows% x=%x% y1=%y1% y2=%y2% W=%WxClockInfoW% H=%WxClockInfoH% w=%w% h1=%h1% h2=%h2% GW=%GuiWidth% GH=%GuiHeight%
+
+	Gui, Add, Text, vWxClockText1 r%TextRows% Center Center
 	if (WxEnabled) {
-		Gui, Add, Picture, vWxImg x0 y0 h%WxImgSize% w%WxImgSize%, .\wx\unknown.png
+		Gui, Add, Text, vWxClockText2 r2 Center Center
+		Gui, Add, Picture, vWxImg x0 y%y3% w%WxImgSize% h%WxImgSize%, .\wx\unknown.png
 	}
-	xPos := WxEnabled ? WxImgSize : 0
-	yPos := Round((GuiHeight - WxClockInfoH) / 2)
-	width := WxClockInfoW - xPos
+
 	Gui, 1:Hide
-	GuiControl, 1:Move, WxClockText, x%xPos% y%yPos% w%width%
-	GuiControl, 1:Show, WxClockText
+	GuiControl, 1:Move, WxClockText1, x%x% y%y1% w%w% h%h1%
+	GuiControl, 1:Show, WxClockText1
+	if (WxEnabled) {
+		GuiControl, 1:Move, WxClockText2, x%x% y%y2% w%w% h%h2%
+		GuiControl, 1:Show, WxClockText2
+	}
 }
 
 UpdateClock(ShowSeconds := 1) {
@@ -129,7 +149,7 @@ UpdateClock(ShowSeconds := 1) {
 	FormatTime, ClockStr,, h:mm%SecondStr% tt%Separator%ddd M/d/yyyy
 	if (ClockStr != oLast.ClockStr) {
 		oLast.ClockStr := ClockStr
-		UpdateWin()
+		UpdateWin(1,0)
 		Return 800
 	}
 	Return 80
@@ -204,7 +224,7 @@ UpdateWx() {
 		oLast.WxStr2 := e.Extra
 	}
 
-	UpdateWin()
+	UpdateWin(0,1)
 }
 
 #^F1::
@@ -228,7 +248,7 @@ CycleWxImg:
 	if (ImgIndex > WxImgs.MaxIndex()) {
 		ImgIndex := 1
 	}
-	UpdateWin()
+	UpdateWin(0,0)
 	Return
 }
 
@@ -259,8 +279,9 @@ DebugWx:
 	Return
 }
 
-UpdateWin() {
-	GuiStr := oLast.ClockStr . "`n" . oLast.WxStr1 . "`n" . oLast.WxStr2
+UpdateWin(ClockText := 0, WxText := 0) {
+	GuiStr1 := oLast.ClockStr
+	GuiStr2 := oLast.WxStr1 . "`n" . oLast.WxStr2
 
 	; TODO: re-introduce positioning other than bottom center
 	ActWin_X := (A_ScreenWidth - GuiWidth) / 2
@@ -268,25 +289,21 @@ UpdateWin() {
 	ActWin_W := GuiWidth
 	ActWin_H := GuiHeight
 
-	text_w := GuiWidth - GuiHeight
+	text_w := GuiWidth
 	text_w := Round(text_w/(A_ScreenDPI/96))
 	text_h := GuiHeight
 	text_h := Round(text_h/(A_ScreenDPI/96))
-	ctrlSize = w%text_w% h%text_h%
-	; ToolTip, % obj_print(oLast) "`n`n" ctrlSize "`n" oLast.ctrlSize
-	if (ctrlSize != oLast.ctrlSize) {
-		GuiControl, 1:Move, WxClockText, x%GuiHeight% %ctrlSize%
-		oLast.ctrlSize := ctrlSize
-	}
-
-	text_w := GuiWidth
-	text_w := Round(text_w/(A_ScreenDPI/96))
 	ctrlSize = w%text_w% h%text_h%
 	gui_x := ActWin_X + Bottom_OffsetX
 	gui_y := (ActWin_Y+ActWin_H) - GuiHeight - Bottom_OffsetY
 	guiPos = x%gui_x% y%gui_y%
 
-	GuiControl, 1:, WxClockText, %GuiStr%
+	if (ClockText == 1) {
+		GuiControl, 1:, WxClockText1, %GuiStr1%
+	}
+	if (WxEnabled and WxText == 1) {
+		GuiControl, 1:, WxClockText2, %GuiStr2%
+	}
 	Gui, +AlwaysOnTop
 	Gui, 1:Show, NoActivate %guiPos% %ctrlSize%
 	oLast.guiPos := guiPos
