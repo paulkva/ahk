@@ -285,10 +285,11 @@ ToggleDebugOSD() {
 	ShowOSD("Debug on, NumLock " N, 1000)
 }
 
-#^F1::Run "C:\si\nircmd.exe" setprimarydisplay 1
-#^F2::Run "C:\si\nircmd.exe" setprimarydisplay 2
-#^F3::Run "C:\si\nircmd.exe" setprimarydisplay 3
-#^F4::Run "C:\si\nircmd.exe" setprimarydisplay 4
+; Alt Win F1-F4 :: set primary display
+#!F1::Run "C:\si\nircmd.exe" setprimarydisplay 1
+#!F2::Run "C:\si\nircmd.exe" setprimarydisplay 2
+#!F3::Run "C:\si\nircmd.exe" setprimarydisplay 3
+#!F4::Run "C:\si\nircmd.exe" setprimarydisplay 4
 
 ; Additional symbols on the keyboard with Ctrl+Win
 #^'::°
