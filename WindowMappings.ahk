@@ -291,6 +291,18 @@ ToggleDebugOSD() {
 #!F3::Run "C:\si\nircmd.exe" setprimarydisplay 3
 #!F4::Run "C:\si\nircmd.exe" setprimarydisplay 4
 
+; Win C :: Run calc.exe on current display
+; Note this overrides a Microsoft Teams shortcut on Windows 11
+#c::RunCalc()
+RunCalc() {
+	M := WinCurntMon()
+	Run calc.exe
+	WinWaitActive, Calculator
+	CW := PrepWin()
+	Tgt := GetTarget(CW, M, 25, 25, 0, 0)
+	WinMove, A, , Tgt.Lft, Tgt.Top
+}
+
 ; Additional symbols on the keyboard with Ctrl+Win
 #^'::°
 #^.::•
@@ -461,18 +473,25 @@ SnapWin(LftPct = 0, TopPct = 0, WdtPct = 100, HgtPct = 100, ExtraKeys = 0)
 		Return
 	}
 	Win := PrepWin()
+	Tgt := GetTarget(Win, Win.M, LftPct, TopPct, WdtPct, HgtPct)
 
-	MonWdt := Mon.Rgt[Win.M] - Mon.Lft[Win.M]
-	MonHgt := Mon.Btm[Win.M] - Mon.Top[Win.M]
-
-	TgtLft := Mon.Lft[Win.M] + Floor(MonWdt * LftPct / 100) + Win.CF.Hrz
-	TgtTop := Mon.Top[Win.M] + Floor(MonHgt * TopPct / 100)
-	TgtWdt := Floor(MonWdt * WdtPct / 100) + Win.CF.Wdt
-	TgtHgt := Floor(MonHgt * HgtPct / 100) + Win.CF.Hgt
-
-	WinMove, A, , TgtLft, TgtTop, TgtWdt, TgtHgt
-	ShowOSD(Win.Proc " @ " . Win.M . ": (" TgtLft " , " TgtTop ") " TgtWdt " x " TgtHgt, 2000)
+	WinMove, A, , Tgt.Lft, Tgt.Top, Tgt.Wdt, Tgt.Hgt
+	ShowOSD(Win.Proc " @ " . Win.M . ": (" Tgt.Lft " , " Tgt.Top ") " Tgt.Wdt " x " Tgt.Hgt, 2000)
 	Return
+}
+
+GetTarget(Win, M, LftPct = 0, TopPct = 0, WdtPct = 100, HgtPct = 100)
+{
+	Tgt := {}
+	MonWdt := Mon.Rgt[M] - Mon.Lft[M]
+	MonHgt := Mon.Btm[M] - Mon.Top[M]
+
+	Tgt.Lft := Mon.Lft[M] + Floor(MonWdt * LftPct / 100) + Win.CF.Hrz
+	Tgt.Top := Mon.Top[M] + Floor(MonHgt * TopPct / 100)
+	Tgt.Wdt := Floor(MonWdt * WdtPct / 100) + Win.CF.Wdt
+	Tgt.Hgt := Floor(MonHgt * HgtPct / 100) + Win.CF.Hgt
+
+	Return Tgt
 }
 
 PrepWin()
