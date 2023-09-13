@@ -10,8 +10,8 @@ SetBatchLines, -1
 
 global appVersion := "v1.0"
 global BkColor, Bottom_OffsetX, Bottom_OffsetY, Bottom_Screen, Bottom_Win, FixedX, FixedY
-     , FontColor, FontName, FontSize, FontStyle, GuiHeight, GuiPosition, GuiWidth
-     , Top_OffsetX, Top_OffsetY, Top_Screen, Top_Win, TransN, TransBk, WxEnabled
+     , FontColor, FontName, FontSize, FontStyle, GuiHeight, GuiPosition, GuiWidth, OutColor
+     , OutlineText, Top_OffsetX, Top_OffsetY, Top_Screen, Top_Win, TransN, TransBk, WxEnabled
 	 , WxApiToken, WxLat, WxLon, WxUnits, WxUpdateInterval, WxPrecision, WxOneCall, WxWind
      , oLast := {}, hGui_OSD, hGUI_s, ImgIndex := 1, ImgSuffix := "d"
 
@@ -91,6 +91,7 @@ CreateGUI() {
 	global
 
 	WxEnabled := StrLen(WxApiToken) >= 16 ; openweathermap tokens appear to be 32 characters
+	OutlineText := StrLen(OutColor) >= 2 and OutColor != "ERROR"
 	WxWind := ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW", "N"]
 
 	Gui, +AlwaysOnTop -Caption +Owner +LastFound +E0x20 +HWNDhGui_OSD
@@ -120,25 +121,63 @@ CreateGUI() {
 	TextRows := WxEnabled ? 1 : 2
 
 	x := WxEnabled ? WxImgSize : 0
+	xa := x - 1
+	xb := x + 1
 	y1 := Round((GuiHeight - WxClockInfoH) / 2)
+	y1a := y1 - 1
+	y1b := y1 + 1
 	y2 := y1 + rowHeight
+	y2a := y2 - 1
+	y2b := y2 + 1
 	y3 := Round((GuiHeight - WxImgSize) / 2)
 	w := GuiWidth - (WxEnabled ? WxImgSize : 0)
 	h1 := rowHeight * TextRows
 	h2 := rowHeight * 2
 	;MsgBox r=%TextRows% x=%x% y1=%y1% y2=%y2% W=%WxClockInfoW% H=%WxClockInfoH% w=%w% h1=%h1% h2=%h2% GW=%GuiWidth% GH=%GuiHeight%
 
-	Gui, Add, Text, vWxClockText1 r%TextRows% Center Center
+	if (OutlineText) {
+		Gui, Add, Text, vWxClockText1aa r%TextRows% Center Center c%OutColor% BackgroundTrans
+		Gui, Add, Text, vWxClockText1ab r%TextRows% Center Center c%OutColor% BackgroundTrans
+		Gui, Add, Text, vWxClockText1ba r%TextRows% Center Center c%OutColor% BackgroundTrans
+		Gui, Add, Text, vWxClockText1bb r%TextRows% Center Center c%OutColor% BackgroundTrans
+	}
+	Gui, Add, Text, vWxClockText1 r%TextRows% Center Center BackgroundTrans
 	if (WxEnabled) {
-		Gui, Add, Text, vWxClockText2 r2 Center Center
+		if (OutlineText) {
+			Gui, Add, Text, vWxClockText2aa r2 Center Center c%OutColor% BackgroundTrans
+			Gui, Add, Text, vWxClockText2ab r2 Center Center c%OutColor% BackgroundTrans
+			Gui, Add, Text, vWxClockText2ba r2 Center Center c%OutColor% BackgroundTrans
+			Gui, Add, Text, vWxClockText2bb r2 Center Center c%OutColor% BackgroundTrans
+		}
+		Gui, Add, Text, vWxClockText2 r2 Center Center BackgroundTrans
 		Gui, Add, Picture, vWxImg x0 y%y3% w%WxImgSize% h%WxImgSize%, .\wx\unknown.png
 	}
 
 	Gui, 1:Hide
 	GuiControl, 1:Move, WxClockText1, x%x% y%y1% w%w% h%h1%
+	if (OutlineText) {
+		GuiControl, 1:Move, WxClockText1aa, x%x% y%y1a% w%w% h%h1%
+		GuiControl, 1:Move, WxClockText1ab, x%x% y%y1b% w%w% h%h1%
+		GuiControl, 1:Move, WxClockText1ba, x%xa% y%y1% w%w% h%h1%
+		GuiControl, 1:Move, WxClockText1bb, x%xb% y%y1% w%w% h%h1%
+		GuiControl, 1:Show, WxClockText1aa
+		GuiControl, 1:Show, WxClockText1ab
+		GuiControl, 1:Show, WxClockText1ba
+		GuiControl, 1:Show, WxClockText1bb
+	}
 	GuiControl, 1:Show, WxClockText1
 	if (WxEnabled) {
 		GuiControl, 1:Move, WxClockText2, x%x% y%y2% w%w% h%h2%
+		if (OutlineText) {
+			GuiControl, 1:Move, WxClockText2aa, x%x% y%y2a% w%w% h%h2%
+			GuiControl, 1:Move, WxClockText2ab, x%x% y%y2b% w%w% h%h2%
+			GuiControl, 1:Move, WxClockText2ba, x%xa% y%y2% w%w% h%h2%
+			GuiControl, 1:Move, WxClockText2bb, x%xb% y%y2% w%w% h%h2%
+			GuiControl, 1:Show, WxClockText2aa
+			GuiControl, 1:Show, WxClockText2ab
+			GuiControl, 1:Show, WxClockText2ba
+			GuiControl, 1:Show, WxClockText2bb
+		}
 		GuiControl, 1:Show, WxClockText2
 	}
 }
@@ -299,9 +338,21 @@ UpdateWin(ClockText := 0, WxText := 0) {
 	guiPos = x%gui_x% y%gui_y%
 
 	if (ClockText == 1) {
+		if (OutlineText) {
+			GuiControl, 1:, WxClockText1aa, %GuiStr1%
+			GuiControl, 1:, WxClockText1ab, %GuiStr1%
+			GuiControl, 1:, WxClockText1ba, %GuiStr1%
+			GuiControl, 1:, WxClockText1bb, %GuiStr1%
+		}
 		GuiControl, 1:, WxClockText1, %GuiStr1%
 	}
 	if (WxEnabled and WxText == 1) {
+		if (OutlineText) {
+			GuiControl, 1:, WxClockText2aa, %GuiStr2%
+			GuiControl, 1:, WxClockText2ab, %GuiStr2%
+			GuiControl, 1:, WxClockText2ba, %GuiStr2%
+			GuiControl, 1:, WxClockText2bb, %GuiStr2%
+		}
 		GuiControl, 1:, WxClockText2, %GuiStr2%
 	}
 	Gui, +AlwaysOnTop
@@ -342,7 +393,8 @@ ReadSettings() {
 	IniRead, FontSize        , %IniFile%, Settings, FontSize        , 9
 	IniRead, GuiWidth        , %IniFile%, Settings, GuiWidth        , %A_ScreenWidth%
 	IniRead, GuiHeight       , %IniFile%, Settings, GuiHeight       , 48
-	IniRead, BkColor         , %IniFile%, Settings, BkColor         , Black
+	IniRead, BkColor         , %IniFile%, Settings, BkColor         , 0x333333
+	IniRead, OutColor        , %IniFile%, Settings, OutColor        , 
 	IniRead, FontColor       , %IniFile%, Settings, FontColor       , White
 	IniRead, FontStyle       , %IniFile%, Settings, FontStyle       , w400
 	IniRead, FontName        , %IniFile%, Settings, FontName        , Verdana
