@@ -285,38 +285,37 @@ ToggleDebugOSD() {
 	ShowOSD("Debug on, NumLock " N, 1000)
 }
 
-; Alt Win F1-F4 :: set primary display
-#!F1::Run "C:\si\nircmd.exe" setprimarydisplay 1
-#!F2::Run "C:\si\nircmd.exe" setprimarydisplay 2
-#!F3::Run "C:\si\nircmd.exe" setprimarydisplay 3
-#!F4::Run "C:\si\nircmd.exe" setprimarydisplay 4
+; Alt Win F1 :: switch primary display
+#!F1::Run "C:\si\MultiMonitorTool.exe" /SetNextPrimary
 
 ; Win C :: Run calc.exe on current display
 ; Note this overrides a Microsoft Teams shortcut on Windows 11
+Launch_Mail::RunCalc()
 #c::RunCalc()
 RunCalc() {
+	CoordMode Mouse, Screen
+	MouseGetPos mx, my, mw
 	M := WinCurntMon()
 	Run calc.exe
 	WinWaitActive, Calculator
-	CW := PrepWin()
-	Tgt := GetTarget(CW, M, 25, 25, 0, 0)
-	WinMove, A, , Tgt.Lft, Tgt.Top
+	;CW := PrepWin()
+	WinMove, A, , mx - 20, my - 20
 }
 
 ; Additional symbols on the keyboard with Ctrl+Win
-#^'::°
-#^.::•
-#^[::«
-#^]::»
-#^-::±
-#^=::≠
-#^8::∞
-#^/::÷
+#^'::Send °
+#^.::Send •
+#^[::Send «
+#^]::Send »
+#^-::Send ±
+#^=::Send ≠
+#^8::Send ∞
+#^/::Send ÷
 ; Additional symbols on the keyboard with Ctrl+Win+Shift
-#^+,::≤
-#^+.::≥
-#^+`::≈
-#^+4::¢
+#^+,::Send ≤
+#^+.::Send ≥
+#^+`::Send ≈
+#^+4::Send ¢
 
 ;-----------------------------------------------------------------------------
 ; When activated, NumPadEnter serves as an alternative to the Windows key,
@@ -530,7 +529,7 @@ PrepWin()
 CrctnFctr()
 {
 	WinGet, PNameWin, ProcessName, A
-	If PNameWin in code.exe,spotify.exe,outlook.exe,lync.exe,winword.exe,excel.exe,revu.exe,teams.exe,slack.exe
+	If PNameWin in code.exe,spotify.exe,outlook.exe,lync.exe,winword.exe,excel.exe,revu.exe,teams.exe,slack.exe,firefox.exe
 	{
 		If (InStr(A_OSVersion, "10.0.") == 1)
 		{
