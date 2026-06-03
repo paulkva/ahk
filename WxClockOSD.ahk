@@ -13,7 +13,7 @@ global BkColor, Bottom_OffsetX, Bottom_OffsetY, Bottom_Screen, Bottom_Win, Fixed
      , FontColor, FontName, FontSize, FontStyle, GuiHeight, GuiPosition, GuiWidth, OutColor
      , OutlineText, Top_OffsetX, Top_OffsetY, Top_Screen, Top_Win, TransN, TransBk, WxEnabled
 	 , WxApiToken, WxLat, WxLon, WxUnits, WxUpdateInterval, WxPrecision, WxOneCall, WxWind
-     , oLast := {}, hGui_OSD, hGUI_s, ImgIndex := 1, ImgSuffix := "d"
+     , oLast := {}, hGui_OSD, hGUI_s, ImgIndex := 1, ImgSuffix := "d", LastMinuteSeen := "", LastSeconds := ""
 
 ReadSettings()
 CreateTrayMenu()
@@ -140,8 +140,13 @@ CreateGUI() {
 		Gui, Add, Text, vWxClockText1ab r%TextRows% Center Center c%OutColor% BackgroundTrans
 		Gui, Add, Text, vWxClockText1ba r%TextRows% Center Center c%OutColor% BackgroundTrans
 		Gui, Add, Text, vWxClockText1bb r%TextRows% Center Center c%OutColor% BackgroundTrans
+		Gui, Add, Text, vWxClockText1aasec r%TextRows% Left c%OutColor% BackgroundTrans
+		Gui, Add, Text, vWxClockText1absec r%TextRows% Left c%OutColor% BackgroundTrans
+		Gui, Add, Text, vWxClockText1basec r%TextRows% Left c%OutColor% BackgroundTrans
+		Gui, Add, Text, vWxClockText1bbsec r%TextRows% Left c%OutColor% BackgroundTrans
 	}
 	Gui, Add, Text, vWxClockText1 r%TextRows% Center Center BackgroundTrans
+	Gui, Add, Text, vWxClockText1sec r%TextRows% Left BackgroundTrans
 	if (WxEnabled) {
 		if (OutlineText) {
 			Gui, Add, Text, vWxClockText2aa r2 Center Center c%OutColor% BackgroundTrans
@@ -155,17 +160,27 @@ CreateGUI() {
 
 	Gui, 1:Hide
 	GuiControl, 1:Move, WxClockText1, x%x% y%y1% w%w% h%h1%
+	GuiControl, 1:Move, WxClockText1sec, x%x% y%y1% w%w% h%h1%
 	if (OutlineText) {
 		GuiControl, 1:Move, WxClockText1aa, x%x% y%y1a% w%w% h%h1%
 		GuiControl, 1:Move, WxClockText1ab, x%x% y%y1b% w%w% h%h1%
 		GuiControl, 1:Move, WxClockText1ba, x%xa% y%y1% w%w% h%h1%
 		GuiControl, 1:Move, WxClockText1bb, x%xb% y%y1% w%w% h%h1%
+		GuiControl, 1:Move, WxClockText1aasec, x%x% y%y1a% w%w% h%h1%
+		GuiControl, 1:Move, WxClockText1absec, x%x% y%y1b% w%w% h%h1%
+		GuiControl, 1:Move, WxClockText1basec, x%xa% y%y1% w%w% h%h1%
+		GuiControl, 1:Move, WxClockText1bbsec, x%xb% y%y1% w%w% h%h1%
 		GuiControl, 1:Show, WxClockText1aa
 		GuiControl, 1:Show, WxClockText1ab
 		GuiControl, 1:Show, WxClockText1ba
 		GuiControl, 1:Show, WxClockText1bb
+		GuiControl, 1:Show, WxClockText1aasec
+		GuiControl, 1:Show, WxClockText1absec
+		GuiControl, 1:Show, WxClockText1basec
+		GuiControl, 1:Show, WxClockText1bbsec
 	}
 	GuiControl, 1:Show, WxClockText1
+	GuiControl, 1:Show, WxClockText1sec
 	if (WxEnabled) {
 		GuiControl, 1:Move, WxClockText2, x%x% y%y2% w%w% h%h2%
 		if (OutlineText) {
@@ -183,12 +198,62 @@ CreateGUI() {
 }
 
 UpdateClock(ShowSeconds := 1) {
+	global LastMinuteSeen, LastSeconds
 	Separator := WxEnabled ? " | " : "`n"
-	SecondStr := ShowSeconds ? ":ss" : ""
+	SecondStr := ShowSeconds ? ":    " : ""
 	FormatTime, ClockStr,, h:mm%SecondStr% tt%Separator%ddd M/d/yyyy
-	if (ClockStr != oLast.ClockStr) {
+	FormatTime, CurrentMinute,, h:mm
+	FormatTime, CurrentSeconds,, ss
+	if (CurrentMinute != LastMinuteSeen) {
+		LastMinuteSeen := CurrentMinute
 		oLast.ClockStr := ClockStr
+		if (ShowSeconds) {
+			; Measure pixel width of "h:mm:" at current font to position seconds overlay
+			FormatTime, PreStr,,  h:mm:
+			hDC := DllCall("GetDC", "Ptr", 0, "Ptr")
+			hFont := DllCall("SendMessage", "Ptr", hGui_OSD, "UInt", 0x31, "Ptr", 0, "Ptr", 0, "Ptr")
+			hOldFont := DllCall("SelectObject", "Ptr", hDC, "Ptr", hFont, "Ptr")
+			VarSetCapacity(sz, 8, 0)
+			DllCall("GetTextExtentPoint32", "Ptr", hDC, "Str", PreStr,  "Int", StrLen(PreStr),  "Ptr", &sz)
+			preW := NumGet(sz, 0, "Int")
+			DllCall("GetTextExtentPoint32", "Ptr", hDC, "Str", ClockStr, "Int", StrLen(ClockStr), "Ptr", &sz)
+			fullW := NumGet(sz, 0, "Int")
+			DllCall("GetTextExtentPoint32", "Ptr", hDC, "Str", CurrentSeconds, "Int", StrLen(CurrentSeconds), "Ptr", &sz)
+			secW := NumGet(sz, 0, "Int")
+			DllCall("SelectObject", "Ptr", hDC, "Ptr", hOldFont)
+			DllCall("ReleaseDC", "Ptr", 0, "Ptr", hDC)
+			
+			x := WxEnabled ? (GuiHeight < 50 ? GuiHeight : 50) : 0
+			w := GuiWidth - x
+			textStartX := x + Round((w - fullW) / 2)
+			xSec := textStartX + preW
+			xaSec := xSec - 1
+			xbSec := xSec + 1
+			GuiControl, 1:Move, WxClockText1sec, x%xSec% w%secW%
+			if (OutlineText) {
+				GuiControl, 1:Move, WxClockText1aasec, x%xaSec% w%secW%
+				GuiControl, 1:Move, WxClockText1absec, x%xaSec% w%secW%
+				GuiControl, 1:Move, WxClockText1basec, x%xbSec% w%secW%
+				GuiControl, 1:Move, WxClockText1bbsec, x%xbSec% w%secW%
+			}
+		}
 		UpdateWin(1,0)
+	}
+	if (ShowSeconds and CurrentSeconds != LastSeconds) {
+		LastSeconds := CurrentSeconds
+		GuiControl, 1:, WxClockText1sec, %CurrentSeconds%
+		GuiControl, 1:Show, WxClockText1sec
+		if (OutlineText) {
+			GuiControl, 1:, WxClockText1aasec, %CurrentSeconds%
+			GuiControl, 1:, WxClockText1absec, %CurrentSeconds%
+			GuiControl, 1:, WxClockText1basec, %CurrentSeconds%
+			GuiControl, 1:, WxClockText1bbsec, %CurrentSeconds%
+			GuiControl, 1:Show, WxClockText1aasec
+			GuiControl, 1:Show, WxClockText1absec
+			GuiControl, 1:Show, WxClockText1basec
+			GuiControl, 1:Show, WxClockText1bbsec
+		}
+		UpdateWin(0,0)
 		Return 800
 	}
 	Return 80
@@ -345,6 +410,7 @@ UpdateWin(ClockText := 0, WxText := 0) {
 			GuiControl, 1:, WxClockText1bb, %GuiStr1%
 		}
 		GuiControl, 1:, WxClockText1, %GuiStr1%
+		GuiControl, 1:, WxClockText1sec, %CurrentSeconds%
 	}
 	if (WxEnabled and WxText == 1) {
 		if (OutlineText) {
