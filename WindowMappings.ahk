@@ -143,7 +143,9 @@ ShowOSD("WindowMappings Ready @ " . WinCurntMon() . "/" . MonQty, 1000)
 #^!NumPadEnd::
 #^!NumPad1::SnapWin(0,20,80,80)
 
-; NumPad2/Down :: Bottom 50% / 67% / 80%
+; NumPad2/Down :: Bottom 48% / 50% / 67% / 80%
+^!NumPadDown::
+^!NumPad2::SnapWin(0,52,100,48)
 #^NumPadDown::
 #^NumPad2::SnapWin(0,50,100,50)
 #!NumPadDown::
@@ -151,13 +153,13 @@ ShowOSD("WindowMappings Ready @ " . WinCurntMon() . "/" . MonQty, 1000)
 #^!NumPadDown::
 #^!NumPad2::SnapWin(0,20,100,80)
 
-; NumPad3/PgDn :: Bottom Right 50% / 67% / 80%
+; NumPad3/PgDn :: Bottom Right 50% / 67% / 75%
 #^NumPadPgDn::
 #^NumPad3::SnapWin(50,50,50,50)
 #!NumPadPgDn::
 #!NumPad3::SnapWin(33,33,67,67)
 #^!NumPadPgDn::
-#^!NumPad3::SnapWin(20,20,80,80)
+#^!NumPad3::SnapWin(25,25,75,75)
 
 ; NumPad4/Left :: Left 50% / 67% / 80%
 #^NumPadLeft::
@@ -194,7 +196,9 @@ ShowOSD("WindowMappings Ready @ " . WinCurntMon() . "/" . MonQty, 1000)
 #^!NumPadHome::
 #^!NumPad7::SnapWin(0,0,80,80)
 
-; NumPad8/Up :: Top 50% / 67% / 80%
+; NumPad8/Up :: Top 48% / 50% / 67% / 80%
+^!NumPadUp::
+^!NumPad3::SnapWin(0,0,100,48)
 #^NumPadUp::
 #^NumPad8::SnapWin(0,0,100,50)
 #!NumPadUp::
@@ -300,6 +304,14 @@ RunCalc() {
 	WinWaitActive, Calculator
 	;CW := PrepWin()
 	WinMove, A, , mx - 20, my - 20
+}
+
+; Ctrl Shift Win Z :: sleep
+#^+z::GoToSleep()
+GoToSleep() {
+	ShowOSD("Going to sleep in 1s...", 1000)
+	Sleep % 1000
+	DllCall("PowrProf\SetSuspendState", "Int", 0, "Int", 0, "Int", 0)
 }
 
 ; Additional symbols on the keyboard with Ctrl+Win
