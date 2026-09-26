@@ -53,10 +53,10 @@ try {
 		SetTimer, ShowClock, % NextInterval
 	} else {
 		; When idle: hide the display, don't try to update as often, and
-		; mark the weather info with ~ to indicate it might be outdated.
+		; mark the weather info with time frozen to indicate it might be outdated.
 		if (!(SubStr(oLast.WxStr1, 1, 1) = "(")) {
 			FormatTime, FreezeTime,, h:mm
-			oLast.WxStr1 := "(" . FreezeTime . ") " . oLast.WxStr1
+			oLast.WxStr1 := "(~" . FreezeTime . ") " . oLast.WxStr1
 		}
 		UpdateClock(0)
 		SetTimer, ShowClock, % 10000
@@ -202,12 +202,12 @@ UpdateClock(ShowSeconds := 1) {
 	Separator := WxEnabled ? " | " : "`n"
 	SecondStr := ShowSeconds ? ":    " : ""
 	FormatTime, ClockStr,, h:mm%SecondStr% tt%Separator%ddd M/d/yyyy
-	FormatTime, CurrentMinute,, h:mm
+	FormatTime, CurrentMinute,, h:mm tt M/d/yyyy
 	FormatTime, CurrentSeconds,, ss
 	if (CurrentMinute != LastMinuteSeen) {
-		LastMinuteSeen := CurrentMinute
 		oLast.ClockStr := ClockStr
 		if (ShowSeconds) {
+			LastMinuteSeen := CurrentMinute
 			; Measure pixel width of "h:mm:" at current font to position seconds overlay
 			FormatTime, PreStr,,  h:mm:
 			hDC := DllCall("GetDC", "Ptr", 0, "Ptr")
