@@ -198,7 +198,7 @@ ShowOSD("WindowMappings Ready @ " . WinCurntMon() . "/" . MonQty, 1000)
 
 ; NumPad8/Up :: Top 48% / 50% / 67% / 80%
 ^!NumPadUp::
-^!NumPad3::SnapWin(0,0,100,48)
+^!NumPad8::SnapWin(0,0,100,48)
 #^NumPadUp::
 #^NumPad8::SnapWin(0,0,100,50)
 #!NumPadUp::
@@ -541,7 +541,7 @@ PrepWin()
 CrctnFctr()
 {
 	WinGet, PNameWin, ProcessName, A
-	If PNameWin in code.exe,spotify.exe,outlook.exe,lync.exe,winword.exe,excel.exe,revu.exe,teams.exe,slack.exe,firefox.exe
+	If PNameWin in code.exe,spotify.exe,outlook.exe,lync.exe,winword.exe,excel.exe,revu.exe,teams.exe,firefox.exe
 	{
 		If (InStr(A_OSVersion, "10.0.") == 1)
 		{
